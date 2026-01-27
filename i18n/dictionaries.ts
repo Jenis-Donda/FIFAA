@@ -76,7 +76,7 @@ const dictionaries: Record<Locale, Dictionary> = {
   en: {
     nav: {
       tournaments: "TOURNAMENTS",
-      matchCentre: "MATCH CENTRE",
+      matchCentre: "MATCH SCORE",
       news: "NEWS",
       rankings: "RANKINGS",
       watchOnFifa: "WATCH ON FIFA+",
@@ -121,7 +121,7 @@ const dictionaries: Record<Locale, Dictionary> = {
       copyright: "© 2026 Football Federation. All rights reserved.",
     },
     matchCentre: {
-      title: "Match Centre",
+      title: "Match Score",
       men: "MEN",
       women: "WOMEN",
       matches: "MATCHES",
@@ -146,7 +146,7 @@ const dictionaries: Record<Locale, Dictionary> = {
   fr: {
     nav: {
       tournaments: "TOURNOIS",
-      matchCentre: "CENTRE DE MATCH",
+      matchCentre: "SCORE DES MATCHS",
       news: "ACTUALITÉS",
       rankings: "CLASSEMENTS",
       watchOnFifa: "REGARDER SUR FIFA+",
@@ -191,7 +191,7 @@ const dictionaries: Record<Locale, Dictionary> = {
       copyright: "© 2026 Fédération de Football. Tous droits réservés.",
     },
     matchCentre: {
-      title: "Centre des Matchs",
+      title: "Score des Matchs",
       men: "HOMMES",
       women: "FEMMES",
       matches: "MATCHS",

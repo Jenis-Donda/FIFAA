@@ -635,7 +635,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
       <div className="bg-fifa-header text-white py-8">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <h1 className="text-2xl lg:text-3xl font-bold italic">Match Centre</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold italic">Match Score</h1>
 
             {/* Gender Toggle */}
             <div className="flex items-center gap-1 bg-white/10 rounded-full p-1">

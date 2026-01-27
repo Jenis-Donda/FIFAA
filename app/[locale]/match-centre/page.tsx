@@ -6,7 +6,7 @@ import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 
 export const metadata: Metadata = {
-  title: "Match Centre | FIFA",
+  title: "Match Score | FIFA",
   description: "View live scores, match schedules, and standings from football leagues around the world.",
 };
 
