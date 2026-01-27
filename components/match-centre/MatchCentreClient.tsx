@@ -5,6 +5,7 @@ import Link from "next/link";
 import DateSelector from "./DateSelector";
 import MatchList from "./MatchList";
 import StandingsPanel from "./StandingsPanel";
+import StandingsModal from "./StandingsModal";
 import type { MatchesByCompetition, Standing, MatchAPIItem, Match, StandingsAPIResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/dictionaries";
 
@@ -42,8 +43,21 @@ type TeamNameLocale = {
  */
 function getTeamName(names: TeamNameLocale[], preferredLocale: string = "en-GB"): string {
   if (!names || names.length === 0) return "Unknown";
+  
+  // Try preferred locale first
   const localized = names.find((n) => n.Locale === preferredLocale);
-  return localized?.Description || names[0]?.Description || "Unknown";
+  if (localized?.Description) return localized.Description;
+  
+  // Try English variants
+  const englishVariants = ["en-GB", "en-US", "en", "EN"];
+  for (const locale of englishVariants) {
+    const found = names.find((n) => n.Locale === locale || n.Locale.toLowerCase().startsWith("en"));
+    if (found?.Description) return found.Description;
+  }
+  
+  // Fall back to first available description
+  const firstValid = names.find((n) => n.Description && n.Description.trim() !== "");
+  return firstValid?.Description || names[0]?.Description || "Unknown";
 }
 
 /**
@@ -109,6 +123,7 @@ function transformMatch(match: MatchAPIItem): Match {
     time: match.Date,
     date: match.Date,
     status: getMatchStatus(match.MatchStatus),
+    statusCode: match.MatchStatus,
     competition: competitionName,
     competitionId: match.IdCompetition,
     competitionLogo,
@@ -151,6 +166,44 @@ function extractCompetitionMetadata(matches: MatchAPIItem[]): Map<string, Compet
 }
 
 /**
+ * Extract last 5 match results (form) from MatchResults array
+ */
+function extractForm(matchResults: any[] | undefined, teamId: string): ("W" | "D" | "L" | "-")[] {
+  if (!matchResults || matchResults.length === 0) {
+    return ["-", "-", "-", "-", "-"];
+  }
+
+  // Filter only played matches (Result !== 3) and sort by date descending
+  const playedMatches = matchResults
+    .filter((m) => m.Result !== 3 && (m.HomeTeamScore !== null || m.AwayTeamScore !== null))
+    .sort((a, b) => new Date(b.StartTime).getTime() - new Date(a.StartTime).getTime())
+    .slice(0, 5);
+
+  const form: ("W" | "D" | "L" | "-")[] = [];
+
+  for (let i = 0; i < 5; i++) {
+    if (i >= playedMatches.length) {
+      form.push("-");
+    } else {
+      const match = playedMatches[i];
+      const isHome = match.HomeTeamId === teamId;
+      const homeScore = match.HomeTeamScore ?? 0;
+      const awayScore = match.AwayTeamScore ?? 0;
+
+      if (homeScore === awayScore) {
+        form.push("D");
+      } else if (isHome) {
+        form.push(homeScore > awayScore ? "W" : "L");
+      } else {
+        form.push(awayScore > homeScore ? "W" : "L");
+      }
+    }
+  }
+
+  return form;
+}
+
+/**
  * Transform standings data to component-friendly format
  */
 function transformStandings(data: StandingsAPIResponse | null): Standing[] {
@@ -160,14 +213,42 @@ function transformStandings(data: StandingsAPIResponse | null): Standing[] {
 
   return entries.map((entry) => {
     // Use team ID to build the logo URL
-    const teamLogo = entry.Team?.IdTeam
-      ? `https://api.fifa.com/api/v3/picture/teams-sq-1/${entry.Team.IdTeam}`
+    const teamId = entry.Team?.IdTeam || entry.IdTeam;
+    const teamLogo = teamId
+      ? `https://api.fifa.com/api/v3/picture/teams-sq-1/${teamId}`
       : undefined;
+
+    // Get team name with multiple fallbacks
+    // API returns Team.Name (not Team.TeamName) for standings
+    let teamName = "Unknown";
+    if (entry.Team?.Name && entry.Team.Name.length > 0) {
+      teamName = getTeamName(entry.Team.Name);
+    } else if (entry.Team?.TeamName && entry.Team.TeamName.length > 0) {
+      // Fallback to TeamName if Name is not available
+      teamName = getTeamName(entry.Team.TeamName);
+    } else if (entry.Team?.ShortClubName) {
+      teamName = entry.Team.ShortClubName;
+    } else if (entry.Team?.Abbreviation) {
+      teamName = entry.Team.Abbreviation;
+    }
+
+    // Get abbreviation with fallbacks
+    const teamAbbr = entry.Team?.Abbreviation || 
+                     entry.Team?.ShortClubName?.substring(0, 3).toUpperCase() || 
+                     teamName.substring(0, 3).toUpperCase() || 
+                     "UNK";
+
+    // Get goal difference (API sometimes has typo "GoalsDiference")
+    const goalDiff = entry.GoalsDifference ?? entry.GoalsDiference ?? (entry.For - entry.Against);
+
+    // Extract form from MatchResults
+    const form = extractForm(entry.MatchResults, teamId);
 
     return {
       position: entry.Position,
-      team: entry.Team?.TeamName ? getTeamName(entry.Team.TeamName) : "Unknown",
-      teamAbbr: entry.Team?.Abbreviation || entry.Team?.ShortClubName || "UNK",
+      team: teamName,
+      teamId,
+      teamAbbr,
       teamLogo,
       played: entry.Played,
       won: entry.Won,
@@ -175,8 +256,9 @@ function transformStandings(data: StandingsAPIResponse | null): Standing[] {
       lost: entry.Lost,
       goalsFor: entry.For,
       goalsAgainst: entry.Against,
-      goalDiff: entry.GoalsDifference,
+      goalDiff,
       points: entry.Points,
+      form,
     };
   });
 }
@@ -237,6 +319,15 @@ function groupMatchesByCompetitionLocal(matches: Match[]): MatchesByCompetition[
   });
 }
 
+// Modal state type
+type StandingsModalState = {
+  isOpen: boolean;
+  standings: Standing[];
+  competition: string;
+  competitionLogo?: string;
+  seasonName?: string;
+};
+
 export default function MatchCentreClient({ locale, dict }: MatchCentreClientProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [matches, setMatches] = useState<MatchesByCompetition[]>([]);
@@ -247,6 +338,36 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
   const [isLoading, setIsLoading] = useState(true);
   const [showLiveOnly, setShowLiveOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarDate, setCalendarDate] = useState<string | null>(null);
+  
+  // Standings modal state
+  const [standingsModal, setStandingsModal] = useState<StandingsModalState>({
+    isOpen: false,
+    standings: [],
+    competition: "",
+  });
+
+  // Open standings modal handler
+  const openStandingsModal = (
+    standings: Standing[],
+    competition: string,
+    competitionLogo?: string,
+    seasonName?: string
+  ) => {
+    setStandingsModal({
+      isOpen: true,
+      standings,
+      competition,
+      competitionLogo,
+      seasonName,
+    });
+  };
+
+  // Close standings modal handler
+  const closeStandingsModal = () => {
+    setStandingsModal((prev) => ({ ...prev, isOpen: false }));
+  };
 
   /**
    * Helper function to check if a match falls on the selected date in user's local timezone
@@ -275,9 +396,9 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
   /**
    * Helper function to format match time in user's local timezone
    */
-  const formatMatchTimeLocal = (match: { date: string; time: string; status?: string; winner?: string | null }): string => {
-    // For live matches or completed matches (determined by winner), use the existing time field
-    if (match.status === "live" || (match as any).winner != null) {
+  const formatMatchTimeLocal = (match: { date: string; time: string; status?: string; winner?: string | null; statusCode?: number }): string => {
+    // For live matches or completed matches (determined by statusCode === 0), use the existing time field
+    if (match.status === "live" || (match as any).statusCode === 0) {
       return match.time;
     }
 
@@ -532,6 +653,79 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
     }
   }, [expandedCompetitions, competitionMetadata, locale]);
 
+  // Poll latest match scores every 30 seconds and update existing matches in-place
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchLatestScores = async () => {
+      try {
+        // Build from/to range around selected date (same as initial fetch)
+        const prevDay = new Date(selectedDate);
+        prevDay.setDate(prevDay.getDate() - 1);
+
+        const nextDay = new Date(selectedDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+
+        const formatDateUTC = (date: Date): string => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          return `${year}-${month}-${day}`;
+        };
+
+        const from = `${formatDateUTC(prevDay)}T00:00:00Z`;
+        const to = `${formatDateUTC(nextDay)}T23:59:59Z`;
+
+        const response = await fetch(
+          `${FIFA_CALENDAR_API}/matches?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&language=${locale}&count=500`,
+          { headers: FIFA_API_HEADERS }
+        );
+
+        if (!mounted || !response.ok) return;
+
+        const data = await response.json();
+        const rawMatches: MatchAPIItem[] = data.Results || [];
+        const transformed = rawMatches.map(transformMatch);
+
+        // Map by match id for quick lookup
+        const updatesById = new Map<string | number, Match>();
+        transformed.forEach((m) => updatesById.set(m.id, m));
+
+        // Update scores in existing grouped matches without restructuring groups
+        setMatches((prevGroups) =>
+          prevGroups.map((group) => ({
+            ...group,
+            matches: group.matches.map((match) => {
+              const latest = updatesById.get(match.id);
+              if (!latest) return match;
+              // Only update score/time/status/winner fields to avoid jarring UI changes
+              return {
+                ...match,
+                homeScore: latest.homeScore,
+                awayScore: latest.awayScore,
+                time: latest.time,
+                status: latest.status,
+                winner: latest.winner,
+              };
+            }),
+          }))
+        );
+      } catch (err) {
+        // silent fail - do not disturb UI if polling fails
+        // console.debug("Polling error:", err);
+      }
+    };
+
+    // Start immediate fetch then poll every 30s
+    fetchLatestScores();
+    const id = setInterval(fetchLatestScores, 30_000);
+
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, [selectedDate, locale]);
+
   // Filter matches based on live toggle and search
   const filteredMatches = matches
     .map((group) => ({
@@ -563,7 +757,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
       <div className="bg-fifa-header text-white py-8">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <h1 className="text-2xl lg:text-3xl font-bold italic">Match Centre</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold italic">Match Score</h1>
 
 
             {/* Matches Tab */}
@@ -640,31 +834,80 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
               </label>
 
               {/* Change Day Button */}
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <button
+                onClick={() => {
+                  const d = selectedDate || new Date();
+                  const yyyy = d.getFullYear();
+                  const mm = String(d.getMonth() + 1).padStart(2, "0");
+                  const dd = String(d.getDate()).padStart(2, "0");
+                  setCalendarDate(`${yyyy}-${mm}-${dd}`);
+                  setShowCalendar(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 CHANGE DAY
               </button>
+
+              {/* Calendar Modal */}
+              {showCalendar && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40" onClick={() => setShowCalendar(false)} />
+                  <div className="relative bg-white rounded-xl w-96 p-6 shadow-lg">
+                    <h3 className="text-lg font-semibold text-navy-950 mb-4">Select Date</h3>
+                    <input
+                      type="date"
+                      value={calendarDate ?? ""}
+                      onChange={(e) => setCalendarDate(e.target.value)}
+                      className="w-full border border-gray-200 rounded px-3 py-2 mb-4"
+                    />
+                    <div className="flex items-center gap-2 justify-between">
+                      <button
+                        onClick={() => {
+                          const today = new Date();
+                          const yyyy = today.getFullYear();
+                          const mm = String(today.getMonth() + 1).padStart(2, "0");
+                          const dd = String(today.getDate()).padStart(2, "0");
+                          const iso = `${yyyy}-${mm}-${dd}`;
+                          setCalendarDate(iso);
+                          // Immediately apply today and close modal
+                          setSelectedDate(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
+                          setShowCalendar(false);
+                        }}
+                        className="px-4 py-2 border rounded text-sm font-medium text-gray-700"
+                      >
+                        GO TO TODAY
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowCalendar(false)}
+                          className="px-4 py-2 rounded border text-sm font-medium text-gray-700"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (calendarDate) {
+                              const parts = calendarDate.split("-");
+                              const newDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                              setSelectedDate(newDate);
+                            }
+                            setShowCalendar(false);
+                          }}
+                          className="px-4 py-2 bg-brand-blue text-white rounded text-sm font-medium"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Sort Button */}
-              <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                SORT
-              </button>
-
-              {/* Filter Button */}
-              <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                FILTER
-              </button>
-            </div>
+            {/* Sort/Filter buttons removed per UX request */}
           </div>
         </div>
       </div>
@@ -741,7 +984,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                   <div className="flex-1">
                     <div className="bg-[#e8f4fc] rounded-lg overflow-hidden shadow-sm">
                       {/* Competition Header */}
-                      <div className="flex items-start px-6 py-5 relative">
+                      <div className="flex items-start px-6 py-3 relative">
                         {/* Competition Logo */}
                         <div className="absolute left-6 top-5">
                           {group.competitionLogo ? (
@@ -765,18 +1008,20 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
 
                         {/* Competition Info - Centered */}
                         <div className="flex-1 text-center">
-                          <h3 className="text-lg font-bold text-navy-950">{group.competition}</h3>
-                          <div className="w-64 border-t-2 border-gray-300 mx-auto my-3" />
-                          <div className="flex flex-col items-center gap-1">
+                          <h3 className="text-lg md:text-xl font-extrabold text-navy-950 tracking-tight">{group.competition}</h3>
+                          <div className="w-64 border-t border-gray-300 mx-auto my-3 opacity-80" />
+                          <div className="flex flex-col items-center gap-1 mt-1">
                             {group.matchDay ? (
                               <>
                                 {displayDate !== "Today" && (
-                                  <p className="text-sm font-medium text-gray-700">{displayDate}</p>
+                                  <p className="text-sm text-gray-600 mt-0 mb-0 leading-tight">{displayDate}</p>
                                 )}
-                                <p className="text-sm font-medium text-gray-700 text-gray-500">Match Day {group.matchDay}</p>
+                                <div className="mt-1">
+                                  <span className="inline-block bg-white/60 text-gray-600 px-3 py-1 rounded-full text-sm font-medium border border-gray-200 shadow-sm">Match Day {group.matchDay}</span>
+                                </div>
                               </>
                             ) : (
-                              <p className="text-sm font-medium text-gray-700">{displayDate}</p>
+                              <p className="text-sm text-gray-600 mt-0 mb-0 leading-tight">{displayDate}</p>
                             )}
                           </div>
                         </div>
@@ -786,7 +1031,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                       <div className="bg-white mx-0">
                         {group.matches.map((match) => {
                           const isLive = match.status === "live";
-                          const isFinished = match.winner != null;
+                          const isFinished = match.statusCode === 0;
                           const matchUrl = `/${locale}/match-centre/match/${match.idCompetition}/${match.idSeason}/${match.idStage}/${match.idMatch}`;
 
                           return (
@@ -892,8 +1137,14 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                       <StandingsPanel
                         standings={standings}
                         competition={metadata.competitionName}
+                        competitionLogo={group.competitionLogo}
                         isLoading={isLoadingStandings}
-                        onShowTable={() => { }}
+                        onShowTable={() => openStandingsModal(
+                          standings,
+                          metadata.competitionName,
+                          group.competitionLogo,
+                          group.seasonName
+                        )}
                       />
                     </div>
                   )}
@@ -903,6 +1154,16 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
           </div>
         )}
       </div>
+
+      {/* Standings Modal */}
+      <StandingsModal
+        isOpen={standingsModal.isOpen}
+        onClose={closeStandingsModal}
+        standings={standingsModal.standings}
+        competition={standingsModal.competition}
+        competitionLogo={standingsModal.competitionLogo}
+        seasonName={standingsModal.seasonName}
+      />
     </>
   );
 }
