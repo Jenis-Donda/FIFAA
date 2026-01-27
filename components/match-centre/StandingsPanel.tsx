@@ -177,18 +177,7 @@ export default function StandingsPanel({
         </table>
       </div>
 
-      {/* Full Table Link */}
-      <div className="px-4 py-3 border-t bg-gray-50">
-        <button
-          onClick={onShowTable}
-          className="w-full flex items-center justify-center gap-2 text-sm font-medium text-brand-blue hover:text-brand-blue/80 transition-colors"
-        >
-          View full table
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
+      {/* Full table link removed per request */}
     </div>
   );
 }
