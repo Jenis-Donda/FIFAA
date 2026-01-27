@@ -102,7 +102,7 @@ export default function DateSelector({ selectedDate, onDateChange }: DateSelecto
           {/* Date Buttons */}
           <div
             ref={scrollContainerRef}
-            className="flex-1 flex overflow-x-auto scrollbar-hide py-2 gap-1"
+            className="flex-1 flex justify-center overflow-x-auto scrollbar-hide py-3 gap-4"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {dates.map((date, index) => {
@@ -114,16 +114,14 @@ export default function DateSelector({ selectedDate, onDateChange }: DateSelecto
                   key={index}
                   data-selected={isSelected}
                   onClick={() => onDateChange(date)}
-                  className={`flex-shrink-0 px-4 py-3 min-w-[100px] text-center border-b-2 transition-colors ${
+                  className={`flex-shrink-0 px-6 py-3 min-w-[120px] text-center border-b-2 transition-colors ${
                     isSelected
-                      ? "border-brand-blue text-navy-950 font-semibold"
+                        ? "border-brand-blue text-navy-950 font-semibold"
                       : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   }`}
                 >
-                  <div className={`text-xs ${isToday ? "font-bold" : "font-medium"}`}>
-                    {day}
-                  </div>
-                  <div className="text-sm mt-0.5">{dateStr}</div>
+                    <div className={`text-sm ${isToday ? "font-bold" : "font-medium"}`}>{day}</div>
+                    <div className="text-base mt-0.5 font-medium">{dateStr}</div>
                 </button>
               );
             })}
