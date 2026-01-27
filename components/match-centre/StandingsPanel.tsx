@@ -5,6 +5,7 @@ import type { Standing } from "@/lib/types";
 type StandingsPanelProps = {
   standings: Standing[];
   competition: string | null;
+  competitionLogo?: string;
   isLoading?: boolean;
   onShowTable: () => void;
 };
@@ -78,9 +79,11 @@ function StandingsSkeleton() {
 export default function StandingsPanel({
   standings,
   competition,
+  competitionLogo,
   isLoading = false,
   onShowTable,
 }: StandingsPanelProps) {
+  console.log('standings: ', standings);
   const displayStandings = standings.length > 0 ? standings.slice(0, 4) : [];
   const displayCompetition = competition || "Competition";
 
@@ -98,11 +101,23 @@ export default function StandingsPanel({
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <div className="flex items-center gap-3">
           {/* Competition Logo */}
-          <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-500 rounded flex items-center justify-center">
-            <span className="text-white text-xs font-bold">
-              {displayCompetition.substring(0, 2).toUpperCase()}
-            </span>
-          </div>
+          {competitionLogo ? (
+            <img
+              src={competitionLogo}
+              alt={displayCompetition}
+              className="w-8 h-8 object-contain"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement | null;
+                if (target) target.src = "/images/fallback.png";
+              }}
+            />
+          ) : (
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-500 rounded flex items-center justify-center">
+              <span className="text-white text-xs font-bold">
+                {displayCompetition.substring(0, 2).toUpperCase()}
+              </span>
+            </div>
+          )}
         </div>
         <button
           onClick={onShowTable}

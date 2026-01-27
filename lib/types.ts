@@ -315,11 +315,25 @@ export interface MatchesAPIResponse {
 // Standings API Types
 export interface StandingTeam {
   IdTeam: string;
-  TeamName: TeamNameLocale[];
+  Name?: TeamNameLocale[];  // API returns Name for standings
+  TeamName?: TeamNameLocale[];  // Fallback field
   Abbreviation?: string;
   ShortClubName?: string;
   PictureUrl?: string;
   IdCountry?: string;
+  IdConfederation?: string;
+  City?: string;
+}
+
+// Match result in standings API
+export interface StandingMatchResult {
+  IdMatch: string;
+  StartTime: string;
+  Result: number; // 0 = home win, 1 = away win, 2 = draw, 3 = not played
+  HomeTeamScore: number | null;
+  AwayTeamScore: number | null;
+  HomeTeamId: string;
+  AwayTeamId: string;
 }
 
 export interface StandingEntry {
@@ -332,8 +346,10 @@ export interface StandingEntry {
   Lost: number;
   For: number;
   Against: number;
-  GoalsDifference: number;
+  GoalsDifference?: number;
+  GoalsDiference?: number; // API typo - sometimes returned as this
   Points: number;
+  MatchResults?: StandingMatchResult[]; // Last matches for form
   HomeWon?: number;
   HomeDrawn?: number;
   HomeLost?: number;
@@ -399,6 +415,7 @@ export interface MatchesByCompetition {
 export interface Standing {
   position: number;
   team: string;
+  teamId?: string;
   teamAbbr: string;
   teamLogo?: string;
   played: number;
@@ -409,5 +426,6 @@ export interface Standing {
   goalsAgainst: number;
   goalDiff: number;
   points: number;
+  form?: ("W" | "D" | "L" | "-")[]; // Last 5 match results
 }
 
