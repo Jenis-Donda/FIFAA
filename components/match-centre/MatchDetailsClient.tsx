@@ -29,11 +29,11 @@ function getTeamName(names: TeamNameLocale[], preferredLocale: string = "en-GB")
 }
 
 /**
- * Format team logo URL
+ * Format team logo URL - using teams-sq-4 for high quality
  */
 function formatTeamLogo(teamId?: string): string | undefined {
   if (!teamId) return undefined;
-  return `https://api.fifa.com/api/v3/picture/teams-sq-1/${teamId}`;
+  return `https://api.fifa.com/api/v3/picture/teams-sq-4/${teamId}`;
 }
 
 /**
@@ -114,8 +114,10 @@ export default function MatchDetailsClient({
         );
 
         if (matchData) {
+          console.log("Match data received:", matchData);
           setMatch(matchData);
         } else {
+          console.error("No match data returned from API");
           setError("Match not found");
         }
       } catch (err) {
@@ -230,16 +232,16 @@ export default function MatchDetailsClient({
 
           {/* Match Scoreboard */}
           <div className="flex items-center justify-between mb-6 px-4">
-            {/* Home Team */}
-            <div className="flex-1 flex items-center justify-end gap-6">
-              <div className="text-right">
+            {/* Home Team - Name on left, Logo on right */}
+            <div className="flex-1 flex items-center gap-6">
+              <div>
                 <h2 className="text-3xl lg:text-4xl font-bold text-navy-950">{homeTeamName}</h2>
               </div>
               {match.Home?.IdTeam && (
                 <img
                   src={formatTeamLogo(match.Home.IdTeam)}
                   alt={homeTeamName}
-                  className="w-28 h-28 lg:w-32 lg:h-32 object-contain"
+                  className="w-24 h-24 lg:w-28 lg:h-28 object-contain"
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement | null;
                     if (target) target.src = "/images/fallback.png";
@@ -276,13 +278,13 @@ export default function MatchDetailsClient({
               )}
             </div>
 
-            {/* Away Team */}
-            <div className="flex-1 flex items-center gap-6">
+            {/* Away Team - Logo on left, Name on right */}
+            <div className="flex-1 flex items-center gap-6 justify-end">
               {match.Away?.IdTeam && (
                 <img
                   src={formatTeamLogo(match.Away.IdTeam)}
                   alt={awayTeamName}
-                  className="w-28 h-28 lg:w-32 lg:h-32 object-contain"
+                  className="w-24 h-24 lg:w-28 lg:h-28 object-contain"
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement | null;
                     if (target) target.src = "/images/fallback.png";
@@ -295,13 +297,13 @@ export default function MatchDetailsClient({
             </div>
           </div>
 
-          {/* Match Info - Better formatted */}
+          {/* Match Info - Better formatted to match FIFA */}
           <div className="text-center mb-8">
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-2">
               <span className="text-base font-medium text-gray-700">{competitionName}</span>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 {city && <span>{city}</span>}
-                {city && venue && <span>•</span>}
+                {city && venue && <span className="text-gray-400">•</span>}
                 {venue && <span>({venue})</span>}
               </div>
             </div>
@@ -354,20 +356,21 @@ export default function MatchDetailsClient({
                     )}
                     <div>
                       <p className="text-xl font-bold text-navy-950">{homeTeamName}</p>
-                      <p className="text-base text-gray-600 mt-1">3 wins</p>
+                      <p className="text-sm text-gray-600 mt-1">3 wins</p>
                     </div>
                   </div>
 
-                  {/* Center Stats */}
+                  {/* Center Stats - Total Matches and Draws */}
                   <div className="text-center">
-                    <p className="text-xl font-semibold text-gray-700">5 Draws</p>
+                    <p className="text-4xl lg:text-5xl font-semibold text-gray-700 mb-1">5</p>
+                    <p className="text-sm text-gray-600">Draws: 1</p>
                   </div>
 
                   {/* Away Team Stats */}
                   <div className="flex items-center gap-5">
                     <div>
                       <p className="text-xl font-bold text-navy-950">{awayTeamName}</p>
-                      <p className="text-base text-gray-600 mt-1">1 wins</p>
+                      <p className="text-sm text-gray-600 mt-1">1 wins</p>
                     </div>
                     {match.Away?.IdTeam && (
                       <img
