@@ -271,9 +271,9 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
   /**
    * Helper function to format match time in user's local timezone
    */
-  const formatMatchTimeLocal = (match: { date: string; time: string; status: string }): string => {
-    // For live or finished matches, use the existing time field (e.g., "LIVE", "FT", "45'")
-    if (match.status === "live" || match.status === "finished") {
+  const formatMatchTimeLocal = (match: { date: string; time: string; status?: string; winner?: string | null }): string => {
+    // For live matches or completed matches (determined by winner), use the existing time field
+    if (match.status === "live" || (match as any).winner != null) {
       return match.time;
     }
 
@@ -782,17 +782,17 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                         {/* Competition Info - Centered */}
                         <div className="flex-1 text-center">
                           <h3 className="text-lg font-bold text-navy-950">{group.competition}</h3>
-                          <div className="flex flex-col items-center gap-0.5 mt-0.5">
-                            <p className="text-sm font-medium text-gray-700">
-                              {displayDate}
-                              {group.matchDay && (
-                                <span className="text-gray-500"> · Match Day {group.matchDay}</span>
-                              )}
-                            </p>
-                            {group.seasonName && (
-                              <p className="text-sm text-gray-600 italic">
-                                {group.seasonName}
-                              </p>
+                          <div className="w-64 border-t-2 border-gray-300 mx-auto my-3" />
+                          <div className="flex flex-col items-center gap-1">
+                            {group.matchDay ? (
+                              <>
+                                {displayDate !== "Today" && (
+                                  <p className="text-sm font-medium text-gray-700">{displayDate}</p>
+                                )}
+                                <p className="text-sm font-medium text-gray-700 text-gray-500">Match Day {group.matchDay}</p>
+                              </>
+                            ) : (
+                              <p className="text-sm font-medium text-gray-700">{displayDate}</p>
                             )}
                           </div>
                         </div>
@@ -802,7 +802,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                       <div className="bg-white mx-0">
                         {group.matches.map((match) => {
                           const isLive = match.status === "live";
-                          const isFinished = match.status === "finished";
+                          const isFinished = match.winner != null;
 
                           return (
                             <div key={match.id} className="flex items-center py-4 px-6 hover:bg-blue-50/50 transition-colors border-t border-gray-200/60">

@@ -10,8 +10,8 @@ type MatchListProps = {
 
 function MatchRow({ match }: { match: Match }) {
   const isLive = match.status === "live";
-  const isFinished = match.status === "finished";
   const hasWinner = match.winner != null;
+  const isFinished = hasWinner;
 
   return (
     <div className="py-4 px-6 hover:bg-blue-50/50 transition-colors border-t border-gray-200/60">
