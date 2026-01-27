@@ -1,19 +1,27 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import type { MatchesByCompetition, Match } from "@/lib/types";
 
 type MatchListProps = {
   matchGroups: MatchesByCompetition[];
   isLoading: boolean;
+  locale?: string;
 };
 
-function MatchRow({ match }: { match: Match }) {
+function MatchRow({ match, locale = "en" }: { match: Match; locale?: string }) {
   const isLive = match.status === "live";
   const isFinished = match.statusCode === 0;
+  const matchUrl = `/${locale}/match-centre/match/${match.idCompetition}/${match.idSeason}/${match.idStage}/${match.idMatch}`;
 
   return (
-    <div className="py-4 px-6 transition-colors border-t border-gray-100">
+    <Link
+      href={matchUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="py-4 px-6 transition-colors border-t border-gray-100 cursor-pointer block"
+    >
       <div className="flex items-center gap-4">
         {/* Home Team */}
         <div className="flex-1 flex items-center justify-end gap-3">
@@ -75,14 +83,16 @@ function MatchRow({ match }: { match: Match }) {
           <span className="inline-block text-[11px] font-semibold text-white bg-navy-950 px-3 py-1 rounded">FT</span>
         </div>
       )}
-    </div>
+    </Link>
   );
 }
 
 function CompetitionGroup({
   group,
+  locale = "en",
 }: {
   group: MatchesByCompetition;
+  locale?: string;
 }) {
   return (
     <div className="bg-white rounded-lg overflow-hidden mb-6 shadow-sm border border-gray-200">
@@ -98,7 +108,7 @@ function CompetitionGroup({
         {group.matches.map((match, index) => (
           <div key={match.id}>
             {index > 0 && <div className="border-t border-gray-200/60" />}
-            <MatchRow match={match} />
+            <MatchRow match={match} locale={locale} />
           </div>
         ))}
       </div>
@@ -169,6 +179,7 @@ function EmptyState() {
 export default function MatchList({
   matchGroups,
   isLoading,
+  locale = "en",
 }: MatchListProps) {
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -184,6 +195,7 @@ export default function MatchList({
         <CompetitionGroup
           key={group.competitionId || group.competition}
           group={group}
+          locale={locale}
         />
       ))}
     </div>

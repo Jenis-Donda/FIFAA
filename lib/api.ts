@@ -488,6 +488,10 @@ function transformMatch(match: MatchAPIItem): Match {
 
   return {
     id: match.IdMatch,
+    idMatch: match.IdMatch,
+    idCompetition: match.IdCompetition,
+    idSeason: match.IdSeason,
+    idStage: match.IdStage,
     homeTeam: homeTeamName,
     homeTeamAbbr: match.Home?.Abbreviation || homeTeamName.substring(0, 3).toUpperCase(),
     homeTeamLogo: formatTeamLogo(match.Home?.IdTeam),
@@ -737,5 +741,48 @@ export async function fetchStandingsData(
 ): Promise<Standing[]> {
   const data = await fetchStandings(competitionId, seasonId, stageId, language);
   return transformStandings(data);
+}
+
+/**
+ * Fetch match details by ID
+ * Uses calendar API: /api/v3/calendar/{IdCompetition}/{IdSeason}/{IdMatch}
+ */
+export async function fetchMatchDetails(
+  idCompetition: string,
+  idSeason: string,
+  idStage: string,
+  idMatch: string,
+  language: string = "en"
+): Promise<MatchAPIItem | null> {
+  try {
+    // Try calendar API first (without idStage)
+    const calendarUrl = `${FIFA_CALENDAR_API}/${idCompetition}/${idSeason}/${idMatch}?language=${language}`;
+    let response = await fetch(calendarUrl, {
+      cache: 'no-store',
+      headers: FIFA_API_HEADERS,
+    });
+
+    // If calendar API fails, try live API with idStage
+    if (!response.ok) {
+      const FIFA_LIVE_API = "https://api.fifa.com/api/v3/live/football";
+      const liveUrl = `${FIFA_LIVE_API}/${idCompetition}/${idSeason}/${idStage}/${idMatch}?language=${language}`;
+      response = await fetch(liveUrl, {
+        cache: 'no-store',
+        headers: FIFA_API_HEADERS,
+      });
+    }
+
+    if (!response.ok) {
+      console.error(`Failed to fetch match details: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    // The API might return the match directly or wrapped in Results array
+    return data.Results?.[0] || data || null;
+  } catch (error) {
+    console.error("Error fetching match details:", error);
+    return null;
+  }
 }
 

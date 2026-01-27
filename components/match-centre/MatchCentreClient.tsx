@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import DateSelector from "./DateSelector";
 import MatchList from "./MatchList";
 import StandingsPanel from "./StandingsPanel";
@@ -107,6 +108,10 @@ function transformMatch(match: MatchAPIItem): Match {
 
   return {
     id: match.IdMatch,
+    idMatch: match.IdMatch,
+    idCompetition: match.IdCompetition,
+    idSeason: match.IdSeason,
+    idStage: match.IdStage,
     homeTeam: homeTeamName,
     homeTeamAbbr: match.Home?.Abbreviation || homeTeamName.substring(0, 3).toUpperCase(),
     homeTeamLogo: formatTeamLogo(match.Home?.IdTeam),
@@ -331,7 +336,6 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
   const [standingsMap, setStandingsMap] = useState<Record<string, Standing[]>>({});
   const [loadingStandings, setLoadingStandings] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"men" | "women">("men");
   const [showLiveOnly, setShowLiveOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCalendar, setShowCalendar] = useState(false);
@@ -586,7 +590,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
     };
 
     fetchData();
-  }, [selectedDate, activeTab, locale]);
+  }, [selectedDate, locale]);
 
   // Fetch standings for all competitions automatically
   useEffect(() => {
@@ -755,27 +759,6 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <h1 className="text-2xl lg:text-3xl font-bold italic">Match Score</h1>
 
-            {/* Gender Toggle */}
-            <div className="flex items-center gap-1 bg-white/10 rounded-full p-1">
-              <button
-                onClick={() => setActiveTab("men")}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === "men"
-                  ? "bg-white text-fifa-header"
-                  : "text-white hover:bg-white/10"
-                  }`}
-              >
-                MEN
-              </button>
-              <button
-                onClick={() => setActiveTab("women")}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === "women"
-                  ? "bg-white text-fifa-header"
-                  : "text-white hover:bg-white/10"
-                  }`}
-              >
-                WOMEN
-              </button>
-            </div>
 
             {/* Matches Tab */}
             <div className="sm:ml-8">
@@ -935,6 +918,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
           <MatchList
             matchGroups={[]}
             isLoading={isLoading}
+            locale={locale}
           />
         ) : filteredMatches.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
@@ -1048,9 +1032,16 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                         {group.matches.map((match) => {
                           const isLive = match.status === "live";
                           const isFinished = match.statusCode === 0;
+                          const matchUrl = `/${locale}/match-centre/match/${match.idCompetition}/${match.idSeason}/${match.idStage}/${match.idMatch}`;
 
                           return (
-                            <div key={match.id} className="flex items-center py-4 px-6 hover:bg-blue-50/50 transition-colors border-t border-gray-200/60">
+                            <Link
+                              key={match.id}
+                              href={matchUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center py-4 px-6 hover:bg-blue-50/50 transition-colors border-t border-gray-200/60 cursor-pointer"
+                            >
                               {/* Home Team */}
                               <div className="flex-1 flex items-center justify-end gap-3">
                                 <span className="text-sm font-medium text-navy-950 text-right">
@@ -1133,7 +1124,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                                   {match.awayTeam}
                                 </span>
                               </div>
-                            </div>
+                            </Link>
                           );
                         })}
                       </div>
