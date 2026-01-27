@@ -302,6 +302,15 @@ export interface MatchAPIItem {
   MatchNumber?: number | null;
   TimeDefined?: boolean;
   OfficialityStatus?: number;
+  Attendance?: string;
+  Officials?: Array<{
+    IdCountry?: string;
+    OfficialId?: string;
+    NameShort?: TeamNameLocale[];
+    Name?: TeamNameLocale[];
+    OfficialType?: number;
+    TypeLocalized?: TeamNameLocale[];
+  }>;
   Properties?: Record<string, unknown>;
   [key: string]: unknown; // Allow additional properties
 }
@@ -365,6 +374,10 @@ export interface StandingsAPIResponse {
 // Transformed types for Match Centre components
 export interface Match {
   id: string;
+  idMatch: string;
+  idCompetition: string;
+  idSeason: string;
+  idStage: string;
   homeTeam: string;
   homeTeamAbbr: string;
   homeTeamLogo?: string;

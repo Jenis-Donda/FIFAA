@@ -1,20 +1,28 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import type { MatchesByCompetition, Match } from "@/lib/types";
 
 type MatchListProps = {
   matchGroups: MatchesByCompetition[];
   isLoading: boolean;
+  locale?: string;
 };
 
-function MatchRow({ match }: { match: Match }) {
+function MatchRow({ match, locale = "en" }: { match: Match; locale?: string }) {
   const isLive = match.status === "live";
   const hasWinner = match.winner != null;
   const isFinished = hasWinner;
+  const matchUrl = `/${locale}/match-centre/match/${match.idCompetition}/${match.idSeason}/${match.idStage}/${match.idMatch}`;
 
   return (
-    <div className="py-4 px-6 hover:bg-blue-50/50 transition-colors border-t border-gray-200/60">
+    <Link
+      href={matchUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="py-4 px-6 hover:bg-blue-50/50 transition-colors border-t border-gray-200/60 cursor-pointer block"
+    >
       {/* Match content */}
       <div className="flex items-center">
         {/* Home Team */}
@@ -108,14 +116,16 @@ function MatchRow({ match }: { match: Match }) {
           </span>
         </div>
       )}
-    </div>
+    </Link>
   );
 }
 
 function CompetitionGroup({
   group,
+  locale = "en",
 }: {
   group: MatchesByCompetition;
+  locale?: string;
 }) {
   return (
     <div className="bg-white rounded-lg overflow-hidden mb-6 shadow-sm border border-gray-200">
@@ -131,7 +141,7 @@ function CompetitionGroup({
         {group.matches.map((match, index) => (
           <div key={match.id}>
             {index > 0 && <div className="border-t border-gray-200/60" />}
-            <MatchRow match={match} />
+            <MatchRow match={match} locale={locale} />
           </div>
         ))}
       </div>
@@ -202,6 +212,7 @@ function EmptyState() {
 export default function MatchList({
   matchGroups,
   isLoading,
+  locale = "en",
 }: MatchListProps) {
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -217,6 +228,7 @@ export default function MatchList({
         <CompetitionGroup
           key={group.competitionId || group.competition}
           group={group}
+          locale={locale}
         />
       ))}
     </div>

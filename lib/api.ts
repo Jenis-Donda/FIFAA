@@ -739,3 +739,37 @@ export async function fetchStandingsData(
   return transformStandings(data);
 }
 
+/**
+ * Fetch match details by ID
+ */
+export async function fetchMatchDetails(
+  idCompetition: string,
+  idSeason: string,
+  idStage: string,
+  idMatch: string,
+  language: string = "en"
+): Promise<MatchAPIItem | null> {
+  try {
+    const FIFA_LIVE_API = "https://api.fifa.com/api/v3/live/football";
+    const response = await fetch(
+      `${FIFA_LIVE_API}/${idCompetition}/${idSeason}/${idStage}/${idMatch}?language=${language}`,
+      {
+        cache: 'no-store', // Disable caching to always get fresh data
+        headers: FIFA_API_HEADERS,
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to fetch match details: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    // The API might return the match directly or wrapped in Results array
+    return data.Results?.[0] || data || null;
+  } catch (error) {
+    console.error("Error fetching match details:", error);
+    return null;
+  }
+}
+
