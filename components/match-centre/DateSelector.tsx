@@ -31,10 +31,17 @@ function formatDate(date: Date, today: Date): { day: string; dateStr: string; is
 
 export default function DateSelector({ selectedDate, onDateChange }: DateSelectorProps) {
   const today = new Date();
-  const [dates, setDates] = useState<Date[]>(() => generateDates(today, 5));
+  const [dates, setDates] = useState<Date[]>(() => generateDates(selectedDate || today, 5));
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to center when component mounts
+  // Regenerate date window when `selectedDate` changes
+  useEffect(() => {
+    if (selectedDate) {
+      setDates(generateDates(selectedDate, 5));
+    }
+  }, [selectedDate]);
+
+  // Auto-center the selected date whenever dates or selection change
   useEffect(() => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
@@ -46,42 +53,67 @@ export default function DateSelector({ selectedDate, onDateChange }: DateSelecto
         container.scrollLeft = elementLeft - containerWidth / 2 + elementWidth / 2;
       }
     }
-  }, []);
+  }, [dates, selectedDate]);
 
   const handlePrev = () => {
     // Add more dates to the beginning
-    const firstDate = dates[0];
-    const newDates = [];
-    for (let i = 5; i >= 1; i--) {
-      const date = new Date(firstDate);
-      date.setDate(date.getDate() - i);
-      newDates.push(date);
-    }
-    setDates([...newDates, ...dates]);
+    setDates((prev) => {
+      const firstDate = prev[0];
+      const newDates: Date[] = [];
+      for (let i = 5; i >= 1; i--) {
+        const date = new Date(firstDate);
+        date.setDate(date.getDate() - i);
+        newDates.push(date);
+      }
+      return [...newDates, ...prev];
+    });
   };
 
   const handleNext = () => {
     // Add more dates to the end
-    const lastDate = dates[dates.length - 1];
-    const newDates = [];
-    for (let i = 1; i <= 5; i++) {
-      const date = new Date(lastDate);
-      date.setDate(date.getDate() + i);
-      newDates.push(date);
-    }
-    setDates([...dates, ...newDates]);
+    setDates((prev) => {
+      const lastDate = prev[prev.length - 1];
+      const newDates: Date[] = [];
+      for (let i = 1; i <= 5; i++) {
+        const date = new Date(lastDate);
+        date.setDate(date.getDate() + i);
+        newDates.push(date);
+      }
+      return [...prev, ...newDates];
+    });
   };
 
   const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -200, behavior: "smooth" });
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // If we're near the left edge, prepend more dates then scroll to reveal them
+    if (container.scrollLeft <= 20) {
+      handlePrev();
+      requestAnimationFrame(() => {
+        // reveal older dates (half the container width)
+        container.scrollBy({ left: -container.clientWidth / 2, behavior: "smooth" });
+      });
+      return;
     }
+
+    container.scrollBy({ left: -200, behavior: "smooth" });
   };
 
   const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 200, behavior: "smooth" });
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // If we're near the right edge, append more dates then scroll to reveal them
+    if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 20) {
+      handleNext();
+      requestAnimationFrame(() => {
+        container.scrollBy({ left: 200, behavior: "smooth" });
+      });
+      return;
     }
+
+    container.scrollBy({ left: 200, behavior: "smooth" });
   };
 
   return (
@@ -108,20 +140,26 @@ export default function DateSelector({ selectedDate, onDateChange }: DateSelecto
             {dates.map((date, index) => {
               const { day, dateStr, isToday } = formatDate(date, today);
               const isSelected = date.toDateString() === selectedDate.toDateString();
+              const isFirst = index === 0;
+
+              const btnClass = `flex-shrink-0 px-5 py-3 min-w-[120px] text-center transition-all duration-150 ${isSelected
+                ? "bg-gradient-to-r from-brand-blue/10 to-white border-2 border-brand-blue text-navy-950 font-semibold shadow-md rounded-lg transform scale-105"
+                : "border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 bg-transparent"
+                } ${isFirst ? "" : "border-l border-gray-100 pl-4"}`;
+
+              const dayClass = `text-sm ${isSelected ? "text-brand-blue font-semibold" : isToday ? "font-semibold text-brand-blue" : "font-medium text-gray-600"}`;
+              const dateClass = `text-base mt-0.5 font-medium ${isSelected ? "text-navy-950" : "text-gray-700"}`;
 
               return (
                 <button
                   key={index}
                   data-selected={isSelected}
+                  aria-current={isSelected ? "date" : undefined}
                   onClick={() => onDateChange(date)}
-                  className={`flex-shrink-0 px-6 py-3 min-w-[120px] text-center border-b-2 transition-colors ${
-                    isSelected
-                        ? "border-brand-blue text-navy-950 font-semibold"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  }`}
+                  className={btnClass}
                 >
-                    <div className={`text-sm ${isToday ? "font-bold" : "font-medium"}`}>{day}</div>
-                    <div className="text-base mt-0.5 font-medium">{dateStr}</div>
+                  <div className={dayClass}>{day}</div>
+                  <div className={dateClass}>{dateStr}</div>
                 </button>
               );
             })}

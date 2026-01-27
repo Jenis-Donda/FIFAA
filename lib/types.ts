@@ -392,6 +392,7 @@ export interface Match {
   time: string;
   date: string;
   status: "scheduled" | "live" | "finished";
+  statusCode?: number;
   competition: string;
   competitionId?: string;
   competitionLogo?: string;

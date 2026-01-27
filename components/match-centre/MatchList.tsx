@@ -10,25 +10,21 @@ type MatchListProps = {
 
 function MatchRow({ match }: { match: Match }) {
   const isLive = match.status === "live";
-  const hasWinner = match.winner != null;
-  const isFinished = hasWinner;
+  const isFinished = match.statusCode === 0;
 
   return (
-    <div className="py-4 px-6 hover:bg-blue-50/50 transition-colors border-t border-gray-200/60">
-      {/* Match content */}
-      <div className="flex items-center">
+    <div className="py-4 px-6 transition-colors border-t border-gray-100">
+      <div className="flex items-center gap-4">
         {/* Home Team */}
         <div className="flex-1 flex items-center justify-end gap-3">
-          <span className="text-sm font-medium text-navy-950 text-right">
-            {match.homeTeam}
-          </span>
+          <span className="text-sm font-medium text-navy-950 text-right">{match.homeTeam}</span>
           {match.homeTeamLogo ? (
             <Image
               src={match.homeTeamLogo}
               alt={match.homeTeam}
-              width={32}
-              height={32}
-              className="w-8 h-8 object-contain"
+              width={40}
+              height={40}
+              className="w-9 h-9 object-contain rounded-full"
               unoptimized
               onError={(e) => {
                 const target = e.currentTarget as HTMLImageElement | null;
@@ -36,76 +32,47 @@ function MatchRow({ match }: { match: Match }) {
               }}
             />
           ) : (
-            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500 border border-gray-200">
-              {match.homeTeamAbbr?.substring(0, 2) || "??"}
-            </div>
+            <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500 border border-gray-200">{match.homeTeamAbbr?.substring(0, 2) || "??"}</div>
           )}
         </div>
 
         {/* Score / Time */}
-        <div className="w-32 text-center px-4">
-          {hasWinner || isFinished ? (
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-lg font-bold text-navy-950">
-                {match.homeScore ?? 0}
-              </span>
-              <span className="text-gray-400 text-lg">-</span>
-              <span className="text-lg font-bold text-navy-950">
-                {match.awayScore ?? 0}
-              </span>
+        <div className="w-36 text-center px-4">
+          {isFinished ? (
+            <div className="flex items-center justify-center gap-3">
+              <div className="px-3 py-1 rounded text-lg font-bold text-navy-950">{match.homeScore ?? 0}</div>
+              <div className="text-gray-400 text-lg">-</div>
+              <div className="px-3 py-1 rounded text-lg font-bold text-navy-950">{match.awayScore ?? 0}</div>
             </div>
           ) : isLive ? (
             <div className="flex flex-col items-center">
-              <span className="text-[10px] font-semibold text-white bg-red-600 px-2 py-0.5 rounded mb-1 animate-pulse">
-                LIVE
-              </span>
+              <span className="text-xs font-semibold text-white bg-red-600 px-2 py-0.5 rounded mb-1 animate-pulse">LIVE</span>
               <div className="flex items-center justify-center gap-2">
-                <span className="text-base font-bold text-red-600">
-                  {match.homeScore ?? 0}
-                </span>
+                <span className="text-base font-bold text-red-600">{match.homeScore ?? 0}</span>
                 <span className="text-gray-400">-</span>
-                <span className="text-base font-bold text-red-600">
-                  {match.awayScore ?? 0}
-                </span>
+                <span className="text-base font-bold text-red-600">{match.awayScore ?? 0}</span>
               </div>
             </div>
           ) : (
-            <span className="text-base font-semibold text-navy-950">{match.time}</span>
+            <span className="text-sm font-medium text-gray-700">{match.time}</span>
           )}
         </div>
 
         {/* Away Team */}
         <div className="flex-1 flex items-center gap-3">
           {match.awayTeamLogo ? (
-            <Image
-              src={match.awayTeamLogo}
-              alt={match.awayTeam}
-              width={32}
-              height={32}
-              className="w-8 h-8 object-contain"
-              unoptimized
-              onError={(e) => {
-                const target = e.currentTarget as HTMLImageElement | null;
-                if (target) target.src = "/images/fallback.png";
-              }}
-            />
+            <Image src={match.awayTeamLogo} alt={match.awayTeam} width={40} height={40} className="w-9 h-9 object-contain rounded-full" unoptimized onError={(e) => { const target = e.currentTarget as HTMLImageElement | null; if (target) target.src = "/images/fallback.png"; }} />
           ) : (
-            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500 border border-gray-200">
-              {match.awayTeamAbbr?.substring(0, 2) || "??"}
-            </div>
+            <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500 border border-gray-200">{match.awayTeamAbbr?.substring(0, 2) || "??"}</div>
           )}
-          <span className="text-sm font-medium text-navy-950">
-            {match.awayTeam}
-          </span>
+          <span className="text-sm font-medium text-navy-950">{match.awayTeam}</span>
         </div>
       </div>
 
-      {/* FT Label - Show below for finished matches */}
-      {(hasWinner || isFinished) && (
-        <div className="flex justify-center mt-1">
-          <span className="inline-block text-[11px] font-semibold text-white bg-[#326295] px-3 py-0.5 rounded">
-            FT
-          </span>
+      {/* FT Badge */}
+      {isFinished && (
+        <div className="flex justify-center mt-3">
+          <span className="inline-block text-[11px] font-semibold text-white bg-navy-950 px-3 py-1 rounded">FT</span>
         </div>
       )}
     </div>
