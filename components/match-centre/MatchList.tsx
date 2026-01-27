@@ -10,8 +10,7 @@ type MatchListProps = {
 
 function MatchRow({ match }: { match: Match }) {
   const isLive = match.status === "live";
-  const hasWinner = match.winner != null;
-  const isFinished = hasWinner;
+  const isFinished = match.statusCode === 0;
 
   return (
     <div className="py-4 px-6 hover:bg-blue-50/50 transition-colors border-t border-gray-200/60">
@@ -44,7 +43,7 @@ function MatchRow({ match }: { match: Match }) {
 
         {/* Score / Time */}
         <div className="w-32 text-center px-4">
-          {hasWinner || isFinished ? (
+          {isFinished ? (
             <div className="flex items-center justify-center gap-2">
               <span className="text-lg font-bold text-navy-950">
                 {match.homeScore ?? 0}
@@ -101,7 +100,7 @@ function MatchRow({ match }: { match: Match }) {
       </div>
 
       {/* FT Label - Show below for finished matches */}
-      {(hasWinner || isFinished) && (
+      {isFinished && (
         <div className="flex justify-center mt-1">
           <span className="inline-block text-[11px] font-semibold text-white bg-[#326295] px-3 py-0.5 rounded">
             FT

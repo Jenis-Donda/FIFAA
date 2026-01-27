@@ -104,6 +104,7 @@ function transformMatch(match: MatchAPIItem): Match {
     time: match.Date,
     date: match.Date,
     status: getMatchStatus(match.MatchStatus),
+    statusCode: match.MatchStatus,
     competition: competitionName,
     competitionId: match.IdCompetition,
     competitionLogo,
@@ -271,9 +272,9 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
   /**
    * Helper function to format match time in user's local timezone
    */
-  const formatMatchTimeLocal = (match: { date: string; time: string; status?: string; winner?: string | null }): string => {
-    // For live matches or completed matches (determined by winner), use the existing time field
-    if (match.status === "live" || (match as any).winner != null) {
+  const formatMatchTimeLocal = (match: { date: string; time: string; status?: string; winner?: string | null; statusCode?: number }): string => {
+    // For live matches or completed matches (determined by statusCode === 0), use the existing time field
+    if (match.status === "live" || (match as any).statusCode === 0) {
       return match.time;
     }
 
@@ -527,6 +528,79 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
       fetchStandingsForCompetitions();
     }
   }, [expandedCompetitions, competitionMetadata, locale]);
+
+  // Poll latest match scores every 30 seconds and update existing matches in-place
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchLatestScores = async () => {
+      try {
+        // Build from/to range around selected date (same as initial fetch)
+        const prevDay = new Date(selectedDate);
+        prevDay.setDate(prevDay.getDate() - 1);
+
+        const nextDay = new Date(selectedDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+
+        const formatDateUTC = (date: Date): string => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          return `${year}-${month}-${day}`;
+        };
+
+        const from = `${formatDateUTC(prevDay)}T00:00:00Z`;
+        const to = `${formatDateUTC(nextDay)}T23:59:59Z`;
+
+        const response = await fetch(
+          `${FIFA_CALENDAR_API}/matches?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&language=${locale}&count=500`,
+          { headers: FIFA_API_HEADERS }
+        );
+
+        if (!mounted || !response.ok) return;
+
+        const data = await response.json();
+        const rawMatches: MatchAPIItem[] = data.Results || [];
+        const transformed = rawMatches.map(transformMatch);
+
+        // Map by match id for quick lookup
+        const updatesById = new Map<string | number, Match>();
+        transformed.forEach((m) => updatesById.set(m.id, m));
+
+        // Update scores in existing grouped matches without restructuring groups
+        setMatches((prevGroups) =>
+          prevGroups.map((group) => ({
+            ...group,
+            matches: group.matches.map((match) => {
+              const latest = updatesById.get(match.id);
+              if (!latest) return match;
+              // Only update score/time/status/winner fields to avoid jarring UI changes
+              return {
+                ...match,
+                homeScore: latest.homeScore,
+                awayScore: latest.awayScore,
+                time: latest.time,
+                status: latest.status,
+                winner: latest.winner,
+              };
+            }),
+          }))
+        );
+      } catch (err) {
+        // silent fail - do not disturb UI if polling fails
+        // console.debug("Polling error:", err);
+      }
+    };
+
+    // Start immediate fetch then poll every 30s
+    fetchLatestScores();
+    const id = setInterval(fetchLatestScores, 30_000);
+
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, [selectedDate, locale]);
 
   // Filter matches based on live toggle and search
   const filteredMatches = matches
@@ -802,7 +876,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                       <div className="bg-white mx-0">
                         {group.matches.map((match) => {
                           const isLive = match.status === "live";
-                          const isFinished = match.winner != null;
+                          const isFinished = match.statusCode === 0;
 
                           return (
                             <div key={match.id} className="flex items-center py-4 px-6 hover:bg-blue-50/50 transition-colors border-t border-gray-200/60">
