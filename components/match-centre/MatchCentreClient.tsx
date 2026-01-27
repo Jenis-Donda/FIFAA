@@ -806,23 +806,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Sort Button */}
-              <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                SORT
-              </button>
-
-              {/* Filter Button */}
-              <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                FILTER
-              </button>
-            </div>
+            {/* Sort/Filter buttons removed per UX request */}
           </div>
         </div>
       </div>
@@ -922,18 +906,20 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
 
                         {/* Competition Info - Centered */}
                         <div className="flex-1 text-center">
-                          <h3 className="text-lg font-bold text-navy-950">{group.competition}</h3>
-                          <div className="w-64 border-t-2 border-gray-300 mx-auto my-1" />
-                          <div className="flex flex-col items-center gap-0">
+                          <h3 className="text-lg md:text-xl font-extrabold text-navy-950 tracking-tight">{group.competition}</h3>
+                          <div className="w-64 border-t border-gray-300 mx-auto my-3 opacity-80" />
+                          <div className="flex flex-col items-center gap-1 mt-1">
                             {group.matchDay ? (
                               <>
                                 {displayDate !== "Today" && (
-                                  <p className="text-sm font-medium text-gray-700 mt-0 mb-0 leading-tight">{displayDate}</p>
+                                  <p className="text-sm text-gray-600 mt-0 mb-0 leading-tight">{displayDate}</p>
                                 )}
-                                <p className="text-sm text-gray-500 mt-1 mb-0 leading-tight">Match Day {group.matchDay}</p>
+                                <div className="mt-1">
+                                  <span className="inline-block bg-white/60 text-gray-600 px-3 py-1 rounded-full text-sm font-medium border border-gray-200 shadow-sm">Match Day {group.matchDay}</span>
+                                </div>
                               </>
                             ) : (
-                              <p className="text-sm font-medium text-gray-700 mt-0 mb-0 leading-tight">{displayDate}</p>
+                              <p className="text-sm text-gray-600 mt-0 mb-0 leading-tight">{displayDate}</p>
                             )}
                           </div>
                         </div>

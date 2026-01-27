@@ -140,19 +140,22 @@ export default function DateSelector({ selectedDate, onDateChange }: DateSelecto
             {dates.map((date, index) => {
               const { day, dateStr, isToday } = formatDate(date, today);
               const isSelected = date.toDateString() === selectedDate.toDateString();
+              const isFirst = index === 0;
+
+              const btnClass = `flex-shrink-0 px-5 py-3 min-w-[120px] text-center transition-all duration-150 ${isSelected
+                ? "border-b-2 border-brand-blue text-navy-950 font-semibold bg-white shadow-sm rounded-lg"
+                : "border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 bg-transparent"
+                } ${isFirst ? "" : "border-l border-gray-100 pl-4"}`;
 
               return (
                 <button
                   key={index}
                   data-selected={isSelected}
                   onClick={() => onDateChange(date)}
-                  className={`flex-shrink-0 px-6 py-3 min-w-[120px] text-center border-b-2 transition-colors ${isSelected
-                    ? "border-brand-blue text-navy-950 font-semibold"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
+                  className={btnClass}
                 >
-                  <div className={`text-sm ${isToday ? "font-bold" : "font-medium"}`}>{day}</div>
-                  <div className="text-base mt-0.5 font-medium">{dateStr}</div>
+                  <div className={`text-sm ${isToday ? "font-semibold text-brand-blue" : "font-medium text-gray-600"}`}>{day}</div>
+                  <div className="text-base mt-0.5 font-medium text-gray-700">{dateStr}</div>
                 </button>
               );
             })}
