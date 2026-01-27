@@ -143,19 +143,23 @@ export default function DateSelector({ selectedDate, onDateChange }: DateSelecto
               const isFirst = index === 0;
 
               const btnClass = `flex-shrink-0 px-5 py-3 min-w-[120px] text-center transition-all duration-150 ${isSelected
-                ? "border-b-2 border-brand-blue text-navy-950 font-semibold bg-white shadow-sm rounded-lg"
+                ? "bg-gradient-to-r from-brand-blue/10 to-white border-2 border-brand-blue text-navy-950 font-semibold shadow-md rounded-lg transform scale-105"
                 : "border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 bg-transparent"
                 } ${isFirst ? "" : "border-l border-gray-100 pl-4"}`;
+
+              const dayClass = `text-sm ${isSelected ? "text-brand-blue font-semibold" : isToday ? "font-semibold text-brand-blue" : "font-medium text-gray-600"}`;
+              const dateClass = `text-base mt-0.5 font-medium ${isSelected ? "text-navy-950" : "text-gray-700"}`;
 
               return (
                 <button
                   key={index}
                   data-selected={isSelected}
+                  aria-current={isSelected ? "date" : undefined}
                   onClick={() => onDateChange(date)}
                   className={btnClass}
                 >
-                  <div className={`text-sm ${isToday ? "font-semibold text-brand-blue" : "font-medium text-gray-600"}`}>{day}</div>
-                  <div className="text-base mt-0.5 font-medium text-gray-700">{dateStr}</div>
+                  <div className={dayClass}>{day}</div>
+                  <div className={dateClass}>{dateStr}</div>
                 </button>
               );
             })}
