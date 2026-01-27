@@ -68,13 +68,13 @@ function formatTeamLogo(teamId?: string): string | undefined {
  * Transform API match to component-friendly format
  */
 function transformMatch(match: MatchAPIItem): Match {
-  const homeTeamName = match.Home?.TeamName 
-    ? getTeamName(match.Home.TeamName) 
+  const homeTeamName = match.Home?.TeamName
+    ? getTeamName(match.Home.TeamName)
     : match.Home?.ShortClubName || "TBD";
-  const awayTeamName = match.Away?.TeamName 
-    ? getTeamName(match.Away.TeamName) 
+  const awayTeamName = match.Away?.TeamName
+    ? getTeamName(match.Away.TeamName)
     : match.Away?.ShortClubName || "TBD";
-  
+
   let competitionName = "Competition";
   if (match.CompetitionName && match.CompetitionName.length > 0) {
     competitionName = getTeamName(match.CompetitionName);
@@ -109,8 +109,8 @@ function transformMatch(match: MatchAPIItem): Match {
     competitionLogo,
     seasonName,
     matchDay: match.MatchDay ? parseInt(match.MatchDay, 10) : undefined,
-    venue: match.Stadium?.Name && match.Stadium.Name.length > 0 
-      ? getTeamName(match.Stadium.Name) 
+    venue: match.Stadium?.Name && match.Stadium.Name.length > 0
+      ? getTeamName(match.Stadium.Name)
       : undefined,
     winner: match.Winner,
   };
@@ -121,7 +121,7 @@ function transformMatch(match: MatchAPIItem): Match {
  */
 function extractCompetitionMetadata(matches: MatchAPIItem[]): Map<string, CompetitionMetadata> {
   const metadata = new Map<string, CompetitionMetadata>();
-  
+
   matches.forEach((match) => {
     if (match.IdCompetition && match.IdSeason && match.IdStage) {
       const key = match.IdCompetition;
@@ -131,7 +131,7 @@ function extractCompetitionMetadata(matches: MatchAPIItem[]): Map<string, Compet
           : match.StageName && match.StageName.length > 0
             ? getTeamName(match.StageName)
             : "Competition";
-        
+
         metadata.set(key, {
           competitionId: match.IdCompetition,
           seasonId: match.IdSeason,
@@ -141,7 +141,7 @@ function extractCompetitionMetadata(matches: MatchAPIItem[]): Map<string, Compet
       }
     }
   });
-  
+
   return metadata;
 }
 
@@ -155,10 +155,10 @@ function transformStandings(data: StandingsAPIResponse | null): Standing[] {
 
   return entries.map((entry) => {
     // Use team ID to build the logo URL
-    const teamLogo = entry.Team?.IdTeam 
+    const teamLogo = entry.Team?.IdTeam
       ? `https://api.fifa.com/api/v3/picture/teams-sq-1/${entry.Team.IdTeam}`
       : undefined;
-    
+
     return {
       position: entry.Position,
       team: entry.Team?.TeamName ? getTeamName(entry.Team.TeamName) : "Unknown",
@@ -190,12 +190,12 @@ function extractDateString(dateString: string): string {
  */
 function groupMatchesByCompetitionLocal(matches: Match[]): MatchesByCompetition[] {
   const grouped = new Map<string, Match[]>();
-  
+
   matches.forEach((match) => {
     const dateStr = extractDateString(match.date);
     const competitionKey = match.competitionId || match.competition;
     const groupKey = `${competitionKey}|${dateStr}`;
-    
+
     const existing = grouped.get(groupKey) || [];
     existing.push(match);
     grouped.set(groupKey, existing);
@@ -204,11 +204,11 @@ function groupMatchesByCompetitionLocal(matches: Match[]): MatchesByCompetition[
   return Array.from(grouped.entries()).map(([key, groupMatches]) => {
     const firstMatch = groupMatches[0];
     const dateStr = extractDateString(firstMatch.date);
-    
+
     const sortedMatches = [...groupMatches].sort((a, b) => {
       return new Date(a.date).getTime() - new Date(b.date).getTime();
     });
-    
+
     return {
       competition: firstMatch.competition,
       competitionId: firstMatch.competitionId,
@@ -222,11 +222,11 @@ function groupMatchesByCompetitionLocal(matches: Match[]): MatchesByCompetition[
     // Sort groups by competition name first
     const nameCompare = a.competition.localeCompare(b.competition);
     if (nameCompare !== 0) return nameCompare;
-    
+
     // If competition names are the same, sort by date (fewer days first)
     const dateCompare = a.date.localeCompare(b.date);
     if (dateCompare !== 0) return dateCompare;
-    
+
     // If dates are also the same, sort by matchDay
     return (a.matchDay || 0) - (b.matchDay || 0);
   });
@@ -250,20 +250,20 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
   const isMatchOnSelectedDate = (matchDate: string, selectedDay: Date): boolean => {
     // Parse the match date (could be ISO string like "2026-01-26T02:00:00Z" or local date "2026-01-26")
     const matchDateTime = new Date(matchDate);
-    
+
     // Get the local date components for both dates
     const matchLocalDate = new Date(
       matchDateTime.getFullYear(),
       matchDateTime.getMonth(),
       matchDateTime.getDate()
     );
-    
+
     const selectedLocalDate = new Date(
       selectedDay.getFullYear(),
       selectedDay.getMonth(),
       selectedDay.getDate()
     );
-    
+
     // Compare dates (ignoring time)
     return matchLocalDate.getTime() === selectedLocalDate.getTime();
   };
@@ -276,7 +276,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
     if (match.status === "live" || match.status === "finished") {
       return match.time;
     }
-    
+
     // For scheduled matches, convert UTC date to local time
     try {
       const matchDate = new Date(match.date);
@@ -311,7 +311,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
     // First, flatten all matches and filter by local date AND numeric competitionId
     const allFilteredMatches = matchGroups.flatMap((group) =>
       group.matches
-        .filter((match) => 
+        .filter((match) =>
           isMatchOnSelectedDate(match.date, selectedDay) &&
           isNumericCompetitionId(match.competitionId)
         )
@@ -379,11 +379,11 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
         // Sort groups by competition name first
         const nameCompare = a.competition.localeCompare(b.competition);
         if (nameCompare !== 0) return nameCompare;
-        
+
         // If competition names are the same, sort by date (fewer days first)
         const dateCompare = a.date.localeCompare(b.date);
         if (dateCompare !== 0) return dateCompare;
-        
+
         // If dates are also the same, sort by matchDay
         return (a.matchDay || 0) - (b.matchDay || 0);
       });
@@ -393,16 +393,16 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      
+
       try {
         // Calculate date range: fetch 1 day before and 1 day after to handle timezone differences
         // This ensures we capture all matches that might appear on the selected date in any timezone
         const prevDay = new Date(selectedDate);
         prevDay.setDate(prevDay.getDate() - 1);
-        
+
         const nextDay = new Date(selectedDate);
         nextDay.setDate(nextDay.getDate() + 1);
-        
+
         // Format dates in UTC
         const formatDateUTC = (date: Date): string => {
           const year = date.getFullYear();
@@ -410,7 +410,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
           const day = String(date.getDate()).padStart(2, '0');
           return `${year}-${month}-${day}`;
         };
-        
+
         const from = `${formatDateUTC(prevDay)}T00:00:00Z`;
         const to = `${formatDateUTC(nextDay)}T23:59:59Z`;
 
@@ -419,34 +419,34 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
           `${FIFA_CALENDAR_API}/matches?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&language=${locale}&count=500`,
           { headers: FIFA_API_HEADERS }
         );
-        
+
         if (response.ok) {
           const data = await response.json();
           const rawMatches: MatchAPIItem[] = data.Results || [];
-          
+
           // Transform raw matches to our format
           const transformedMatches = rawMatches.map(transformMatch);
-          
+
           // Group matches by competition
           const groupedMatches = groupMatchesByCompetitionLocal(transformedMatches);
-          
+
           // Extract competition metadata
           const metadataMap = extractCompetitionMetadata(rawMatches);
           const metadata: Record<string, CompetitionMetadata> = {};
           metadataMap.forEach((value, key) => {
             metadata[key] = value;
           });
-          
+
           // Filter matches to only show those on the selected date in user's local timezone
           const filteredMatchesData = filterMatchesByLocalDate(groupedMatches, selectedDate);
-          
+
           setMatches(filteredMatchesData);
           setCompetitionMetadata(metadata);
-          
+
           // Clear old standings when matches change (different date = different competitions/seasons)
           setStandingsMap({});
           setLoadingStandings(new Set());
-          
+
           // Automatically expand all competitions that have IDs
           const allCompetitionIds = new Set<string>();
           filteredMatchesData.forEach((group: MatchesByCompetition) => {
@@ -472,7 +472,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
     const fetchStandingsForCompetitions = async () => {
       // Mark all competitions as loading
       setLoadingStandings(new Set(expandedCompetitions));
-      
+
       // Always fetch fresh standings for current competitions (don't use cache)
       // This ensures standings update when date/competitions change
       const promises = Array.from(expandedCompetitions).map(async (competitionId) => {
@@ -485,14 +485,14 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
           });
           return null;
         }
-        
+
         try {
           // Fetch standings directly from FIFA API
           const response = await fetch(
             `${FIFA_CALENDAR_API}/${metadata.competitionId}/${metadata.seasonId}/${metadata.stageId}/standing?language=${locale}&count=200`,
             { headers: FIFA_API_HEADERS }
           );
-          
+
           if (response.ok) {
             const data: StandingsAPIResponse = await response.json();
             const standings = transformStandings(data);
@@ -510,7 +510,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
           });
         }
       });
-      
+
       const results = await Promise.all(promises);
       const updates: Record<string, Standing[]> = {};
       results.forEach((result) => {
@@ -518,7 +518,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
           updates[result.competitionId] = result.standings;
         }
       });
-      
+
       // Always update standings map (even if empty) to clear old data
       setStandingsMap(updates);
     };
@@ -560,26 +560,24 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <h1 className="text-2xl lg:text-3xl font-bold italic">Match Centre</h1>
-            
+
             {/* Gender Toggle */}
             <div className="flex items-center gap-1 bg-white/10 rounded-full p-1">
               <button
                 onClick={() => setActiveTab("men")}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  activeTab === "men"
-                    ? "bg-white text-fifa-header"
-                    : "text-white hover:bg-white/10"
-                }`}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === "men"
+                  ? "bg-white text-fifa-header"
+                  : "text-white hover:bg-white/10"
+                  }`}
               >
                 MEN
               </button>
               <button
                 onClick={() => setActiveTab("women")}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  activeTab === "women"
-                    ? "bg-white text-fifa-header"
-                    : "text-white hover:bg-white/10"
-                }`}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === "women"
+                  ? "bg-white text-fifa-header"
+                  : "text-white hover:bg-white/10"
+                  }`}
               >
                 WOMEN
               </button>
@@ -644,14 +642,12 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                     className="sr-only"
                   />
                   <div
-                    className={`w-12 h-6 rounded-full transition-colors ${
-                      showLiveOnly ? "bg-brand-blue" : "bg-gray-200"
-                    }`}
+                    className={`w-12 h-6 rounded-full transition-colors ${showLiveOnly ? "bg-brand-blue" : "bg-gray-200"
+                      }`}
                   >
                     <div
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                        showLiveOnly ? "translate-x-6" : ""
-                      }`}
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${showLiveOnly ? "translate-x-6" : ""
+                        }`}
                     />
                   </div>
                 </div>
@@ -721,21 +717,21 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
               const metadata = group.competitionId ? competitionMetadata[group.competitionId] : null;
               const standings = group.competitionId ? standingsMap[group.competitionId] || [] : [];
               const isLoadingStandings = group.competitionId ? loadingStandings.has(group.competitionId) : false;
-              
+
               // Format date for display - use the selected date since matches are already filtered
               const displayDate = (() => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
-                
+
                 const selected = new Date(selectedDate);
                 selected.setHours(0, 0, 0, 0);
-                
+
                 const tomorrow = new Date(today);
                 tomorrow.setDate(tomorrow.getDate() + 1);
-                
+
                 const yesterday = new Date(today);
                 yesterday.setDate(yesterday.getDate() - 1);
-                
+
                 if (selected.getTime() === today.getTime()) {
                   return "Today";
                 } else if (selected.getTime() === tomorrow.getTime()) {
@@ -751,7 +747,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                   });
                 }
               })();
-              
+
               return (
                 <div
                   key={`${group.competitionId || group.competition}-${group.date}`}
@@ -769,6 +765,10 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                               src={group.competitionLogo}
                               alt={group.competition}
                               className="w-12 h-12 object-contain"
+                              onError={(e) => {
+                                const target = e.currentTarget as HTMLImageElement | null;
+                                if (target) target.src = "/images/fallback.png";
+                              }}
                             />
                           ) : (
                             <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center border border-white/20 shadow-sm">
@@ -816,6 +816,10 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                                     src={match.homeTeamLogo}
                                     alt={match.homeTeam}
                                     className="w-7 h-7 object-contain"
+                                    onError={(e) => {
+                                      const target = e.currentTarget as HTMLImageElement | null;
+                                      if (target) target.src = "/images/fallback.png";
+                                    }}
                                   />
                                 ) : (
                                   <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500 border border-gray-200">
@@ -870,6 +874,10 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                                     src={match.awayTeamLogo}
                                     alt={match.awayTeam}
                                     className="w-7 h-7 object-contain"
+                                    onError={(e) => {
+                                      const target = e.currentTarget as HTMLImageElement | null;
+                                      if (target) target.src = "/images/fallback.png";
+                                    }}
                                   />
                                 ) : (
                                   <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500 border border-gray-200">
@@ -894,7 +902,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                         standings={standings}
                         competition={metadata.competitionName}
                         isLoading={isLoadingStandings}
-                        onShowTable={() => {}}
+                        onShowTable={() => { }}
                       />
                     </div>
                   )}

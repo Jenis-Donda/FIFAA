@@ -138,6 +138,10 @@ export default function StandingsPanel({
                         src={row.teamLogo}
                         alt={row.team}
                         className="w-5 h-5 object-contain"
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement | null;
+                          if (target) target.src = "/images/fallback.png";
+                        }}
                       />
                     ) : (
                       <div className="w-5 h-5 bg-gray-200 rounded-full flex items-center justify-center text-[8px] font-bold text-gray-500">

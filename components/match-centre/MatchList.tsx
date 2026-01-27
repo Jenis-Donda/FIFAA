@@ -30,6 +30,10 @@ function MatchRow({ match }: { match: Match }) {
               height={32}
               className="w-8 h-8 object-contain"
               unoptimized
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement | null;
+                if (target) target.src = "/images/fallback.png";
+              }}
             />
           ) : (
             <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500 border border-gray-200">
@@ -80,6 +84,10 @@ function MatchRow({ match }: { match: Match }) {
               height={32}
               className="w-8 h-8 object-contain"
               unoptimized
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement | null;
+                if (target) target.src = "/images/fallback.png";
+              }}
             />
           ) : (
             <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500 border border-gray-200">
@@ -144,7 +152,7 @@ function LoadingSkeleton() {
               <div className="h-4 bg-white/50 rounded w-24 mx-auto" />
             </div>
           </div>
-          
+
           {/* Matches */}
           <div className="bg-white">
             {[1, 2, 3].map((j) => (
