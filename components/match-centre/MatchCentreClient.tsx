@@ -244,6 +244,8 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
   const [activeTab, setActiveTab] = useState<"men" | "women">("men");
   const [showLiveOnly, setShowLiveOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarDate, setCalendarDate] = useState<string | null>(null);
 
   /**
    * Helper function to check if a match falls on the selected date in user's local timezone
@@ -731,12 +733,77 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
               </label>
 
               {/* Change Day Button */}
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <button
+                onClick={() => {
+                  const d = selectedDate || new Date();
+                  const yyyy = d.getFullYear();
+                  const mm = String(d.getMonth() + 1).padStart(2, "0");
+                  const dd = String(d.getDate()).padStart(2, "0");
+                  setCalendarDate(`${yyyy}-${mm}-${dd}`);
+                  setShowCalendar(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 CHANGE DAY
               </button>
+
+              {/* Calendar Modal */}
+              {showCalendar && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40" onClick={() => setShowCalendar(false)} />
+                  <div className="relative bg-white rounded-xl w-96 p-6 shadow-lg">
+                    <h3 className="text-lg font-semibold text-navy-950 mb-4">Select Date</h3>
+                    <input
+                      type="date"
+                      value={calendarDate ?? ""}
+                      onChange={(e) => setCalendarDate(e.target.value)}
+                      className="w-full border border-gray-200 rounded px-3 py-2 mb-4"
+                    />
+                    <div className="flex items-center gap-2 justify-between">
+                      <button
+                        onClick={() => {
+                          const today = new Date();
+                          const yyyy = today.getFullYear();
+                          const mm = String(today.getMonth() + 1).padStart(2, "0");
+                          const dd = String(today.getDate()).padStart(2, "0");
+                          const iso = `${yyyy}-${mm}-${dd}`;
+                          setCalendarDate(iso);
+                          // Immediately apply today and close modal
+                          setSelectedDate(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
+                          setShowCalendar(false);
+                        }}
+                        className="px-4 py-2 border rounded text-sm font-medium text-gray-700"
+                      >
+                        GO TO TODAY
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowCalendar(false)}
+                          className="px-4 py-2 rounded border text-sm font-medium text-gray-700"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (calendarDate) {
+                              const parts = calendarDate.split("-");
+                              const newDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                              setSelectedDate(newDate);
+                            }
+                            setShowCalendar(false);
+                          }}
+                          className="px-4 py-2 bg-brand-blue text-white rounded text-sm font-medium"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -831,7 +898,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                   <div className="flex-1">
                     <div className="bg-[#e8f4fc] rounded-lg overflow-hidden shadow-sm">
                       {/* Competition Header */}
-                      <div className="flex items-start px-6 py-5 relative">
+                      <div className="flex items-start px-6 py-3 relative">
                         {/* Competition Logo */}
                         <div className="absolute left-6 top-5">
                           {group.competitionLogo ? (
@@ -856,17 +923,17 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                         {/* Competition Info - Centered */}
                         <div className="flex-1 text-center">
                           <h3 className="text-lg font-bold text-navy-950">{group.competition}</h3>
-                          <div className="w-64 border-t-2 border-gray-300 mx-auto my-3" />
-                          <div className="flex flex-col items-center gap-1">
+                          <div className="w-64 border-t-2 border-gray-300 mx-auto my-1" />
+                          <div className="flex flex-col items-center gap-0">
                             {group.matchDay ? (
                               <>
                                 {displayDate !== "Today" && (
-                                  <p className="text-sm font-medium text-gray-700">{displayDate}</p>
+                                  <p className="text-sm font-medium text-gray-700 mt-0 mb-0 leading-tight">{displayDate}</p>
                                 )}
-                                <p className="text-sm font-medium text-gray-700 text-gray-500">Match Day {group.matchDay}</p>
+                                <p className="text-sm text-gray-500 mt-1 mb-0 leading-tight">Match Day {group.matchDay}</p>
                               </>
                             ) : (
-                              <p className="text-sm font-medium text-gray-700">{displayDate}</p>
+                              <p className="text-sm font-medium text-gray-700 mt-0 mb-0 leading-tight">{displayDate}</p>
                             )}
                           </div>
                         </div>
