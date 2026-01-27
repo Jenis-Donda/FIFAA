@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import DateSelector from "./DateSelector";
 import MatchList from "./MatchList";
 import StandingsPanel from "./StandingsPanel";
+import StandingsModal from "./StandingsModal";
 import type { MatchesByCompetition, Standing, MatchAPIItem, Match, StandingsAPIResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/dictionaries";
 
@@ -41,8 +42,21 @@ type TeamNameLocale = {
  */
 function getTeamName(names: TeamNameLocale[], preferredLocale: string = "en-GB"): string {
   if (!names || names.length === 0) return "Unknown";
+  
+  // Try preferred locale first
   const localized = names.find((n) => n.Locale === preferredLocale);
-  return localized?.Description || names[0]?.Description || "Unknown";
+  if (localized?.Description) return localized.Description;
+  
+  // Try English variants
+  const englishVariants = ["en-GB", "en-US", "en", "EN"];
+  for (const locale of englishVariants) {
+    const found = names.find((n) => n.Locale === locale || n.Locale.toLowerCase().startsWith("en"));
+    if (found?.Description) return found.Description;
+  }
+  
+  // Fall back to first available description
+  const firstValid = names.find((n) => n.Description && n.Description.trim() !== "");
+  return firstValid?.Description || names[0]?.Description || "Unknown";
 }
 
 /**
@@ -146,6 +160,44 @@ function extractCompetitionMetadata(matches: MatchAPIItem[]): Map<string, Compet
 }
 
 /**
+ * Extract last 5 match results (form) from MatchResults array
+ */
+function extractForm(matchResults: any[] | undefined, teamId: string): ("W" | "D" | "L" | "-")[] {
+  if (!matchResults || matchResults.length === 0) {
+    return ["-", "-", "-", "-", "-"];
+  }
+
+  // Filter only played matches (Result !== 3) and sort by date descending
+  const playedMatches = matchResults
+    .filter((m) => m.Result !== 3 && (m.HomeTeamScore !== null || m.AwayTeamScore !== null))
+    .sort((a, b) => new Date(b.StartTime).getTime() - new Date(a.StartTime).getTime())
+    .slice(0, 5);
+
+  const form: ("W" | "D" | "L" | "-")[] = [];
+
+  for (let i = 0; i < 5; i++) {
+    if (i >= playedMatches.length) {
+      form.push("-");
+    } else {
+      const match = playedMatches[i];
+      const isHome = match.HomeTeamId === teamId;
+      const homeScore = match.HomeTeamScore ?? 0;
+      const awayScore = match.AwayTeamScore ?? 0;
+
+      if (homeScore === awayScore) {
+        form.push("D");
+      } else if (isHome) {
+        form.push(homeScore > awayScore ? "W" : "L");
+      } else {
+        form.push(awayScore > homeScore ? "W" : "L");
+      }
+    }
+  }
+
+  return form;
+}
+
+/**
  * Transform standings data to component-friendly format
  */
 function transformStandings(data: StandingsAPIResponse | null): Standing[] {
@@ -155,14 +207,42 @@ function transformStandings(data: StandingsAPIResponse | null): Standing[] {
 
   return entries.map((entry) => {
     // Use team ID to build the logo URL
-    const teamLogo = entry.Team?.IdTeam
-      ? `https://api.fifa.com/api/v3/picture/teams-sq-1/${entry.Team.IdTeam}`
+    const teamId = entry.Team?.IdTeam || entry.IdTeam;
+    const teamLogo = teamId
+      ? `https://api.fifa.com/api/v3/picture/teams-sq-1/${teamId}`
       : undefined;
+
+    // Get team name with multiple fallbacks
+    // API returns Team.Name (not Team.TeamName) for standings
+    let teamName = "Unknown";
+    if (entry.Team?.Name && entry.Team.Name.length > 0) {
+      teamName = getTeamName(entry.Team.Name);
+    } else if (entry.Team?.TeamName && entry.Team.TeamName.length > 0) {
+      // Fallback to TeamName if Name is not available
+      teamName = getTeamName(entry.Team.TeamName);
+    } else if (entry.Team?.ShortClubName) {
+      teamName = entry.Team.ShortClubName;
+    } else if (entry.Team?.Abbreviation) {
+      teamName = entry.Team.Abbreviation;
+    }
+
+    // Get abbreviation with fallbacks
+    const teamAbbr = entry.Team?.Abbreviation || 
+                     entry.Team?.ShortClubName?.substring(0, 3).toUpperCase() || 
+                     teamName.substring(0, 3).toUpperCase() || 
+                     "UNK";
+
+    // Get goal difference (API sometimes has typo "GoalsDiference")
+    const goalDiff = entry.GoalsDifference ?? entry.GoalsDiference ?? (entry.For - entry.Against);
+
+    // Extract form from MatchResults
+    const form = extractForm(entry.MatchResults, teamId);
 
     return {
       position: entry.Position,
-      team: entry.Team?.TeamName ? getTeamName(entry.Team.TeamName) : "Unknown",
-      teamAbbr: entry.Team?.Abbreviation || entry.Team?.ShortClubName || "UNK",
+      team: teamName,
+      teamId,
+      teamAbbr,
       teamLogo,
       played: entry.Played,
       won: entry.Won,
@@ -170,8 +250,9 @@ function transformStandings(data: StandingsAPIResponse | null): Standing[] {
       lost: entry.Lost,
       goalsFor: entry.For,
       goalsAgainst: entry.Against,
-      goalDiff: entry.GoalsDifference,
+      goalDiff,
       points: entry.Points,
+      form,
     };
   });
 }
@@ -232,6 +313,15 @@ function groupMatchesByCompetitionLocal(matches: Match[]): MatchesByCompetition[
   });
 }
 
+// Modal state type
+type StandingsModalState = {
+  isOpen: boolean;
+  standings: Standing[];
+  competition: string;
+  competitionLogo?: string;
+  seasonName?: string;
+};
+
 export default function MatchCentreClient({ locale, dict }: MatchCentreClientProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [matches, setMatches] = useState<MatchesByCompetition[]>([]);
@@ -243,6 +333,34 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
   const [activeTab, setActiveTab] = useState<"men" | "women">("men");
   const [showLiveOnly, setShowLiveOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Standings modal state
+  const [standingsModal, setStandingsModal] = useState<StandingsModalState>({
+    isOpen: false,
+    standings: [],
+    competition: "",
+  });
+
+  // Open standings modal handler
+  const openStandingsModal = (
+    standings: Standing[],
+    competition: string,
+    competitionLogo?: string,
+    seasonName?: string
+  ) => {
+    setStandingsModal({
+      isOpen: true,
+      standings,
+      competition,
+      competitionLogo,
+      seasonName,
+    });
+  };
+
+  // Close standings modal handler
+  const closeStandingsModal = () => {
+    setStandingsModal((prev) => ({ ...prev, isOpen: false }));
+  };
 
   /**
    * Helper function to check if a match falls on the selected date in user's local timezone
@@ -901,8 +1019,14 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                       <StandingsPanel
                         standings={standings}
                         competition={metadata.competitionName}
+                        competitionLogo={group.competitionLogo}
                         isLoading={isLoadingStandings}
-                        onShowTable={() => { }}
+                        onShowTable={() => openStandingsModal(
+                          standings,
+                          metadata.competitionName,
+                          group.competitionLogo,
+                          group.seasonName
+                        )}
                       />
                     </div>
                   )}
@@ -912,6 +1036,16 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
           </div>
         )}
       </div>
+
+      {/* Standings Modal */}
+      <StandingsModal
+        isOpen={standingsModal.isOpen}
+        onClose={closeStandingsModal}
+        standings={standingsModal.standings}
+        competition={standingsModal.competition}
+        competitionLogo={standingsModal.competitionLogo}
+        seasonName={standingsModal.seasonName}
+      />
     </>
   );
 }
