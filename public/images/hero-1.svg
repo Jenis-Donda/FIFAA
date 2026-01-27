@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b2c5f"/>
+      <stop offset="100%" stop-color="#1b76ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="1200" cy="240" r="180" fill="rgba(255,255,255,0.18)"/>
+  <circle cx="320" cy="700" r="220" fill="rgba(255,255,255,0.12)"/>
+  <text x="90" y="140" fill="#ffffff" font-size="48" font-family="Arial, sans-serif" font-weight="700">
+    FIFA Women Champions Cup TM
+  </text>
+  <text x="90" y="210" fill="#d7e6ff" font-size="26" font-family="Arial, sans-serif">
+    Official highlight placeholder
+  </text>
+</svg>
+

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#0b1d38"/>
+  <circle cx="200" cy="420" r="140" fill="rgba(255,255,255,0.18)"/>
+  <text x="60" y="120" fill="#ffffff" font-size="30" font-family="Arial, sans-serif" font-weight="700">
+    Profile
+  </text>
+</svg>
+
