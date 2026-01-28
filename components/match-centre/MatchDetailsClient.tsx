@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { fetchMatchDetails } from "@/lib/api";
-import type { MatchAPIItem } from "@/lib/types";
+import { fetchMatchDetails, fetchHeadToHead } from "@/lib/api";
+import type { MatchAPIItem, HeadToHeadAPIResponse } from "@/lib/types";
 import type { Dictionary } from "@/i18n/dictionaries";
 
 type MatchDetailsClientProps = {
@@ -95,7 +95,9 @@ export default function MatchDetailsClient({
   idMatch,
 }: MatchDetailsClientProps) {
   const [match, setMatch] = useState<MatchAPIItem | null>(null);
+  const [headToHeadData, setHeadToHeadData] = useState<HeadToHeadAPIResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingHeadToHead, setIsLoadingHeadToHead] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "lineup" | "stats" | "table" | "related">("stats");
 
@@ -130,6 +132,35 @@ export default function MatchDetailsClient({
 
     loadMatchDetails();
   }, [idCompetition, idSeason, idStage, idMatch, locale]);
+
+  // Fetch head-to-head data when match is loaded
+  useEffect(() => {
+    const loadHeadToHead = async () => {
+      if (!match?.Home?.IdTeam || !match?.Away?.IdTeam) return;
+
+      setIsLoadingHeadToHead(true);
+      try {
+        // Don't pass toDate - FIFA includes the current match in the list
+        // The API will return matches including the current one
+        const h2hData = await fetchHeadToHead(
+          match.Home.IdTeam,
+          match.Away.IdTeam,
+          locale === "en" ? "en" : locale,
+          5 // count - match FIFA's default
+        );
+        
+        if (h2hData) {
+          setHeadToHeadData(h2hData);
+        }
+      } catch (err) {
+        console.error("Error loading head-to-head:", err);
+      } finally {
+        setIsLoadingHeadToHead(false);
+      }
+    };
+
+    loadHeadToHead();
+  }, [match?.Home?.IdTeam, match?.Away?.IdTeam, match?.Date, locale]);
 
   if (isLoading) {
     return (
@@ -202,6 +233,14 @@ export default function MatchDetailsClient({
   const matchDate = formatMatchDate(match.Date, locale);
   const matchTime = formatMatchTime(match.Date, locale);
 
+  // Map head-to-head stats to home/away teams
+  const homeTeamStats = headToHeadData && match.Home?.IdTeam && match.Away?.IdTeam
+    ? (headToHeadData.TeamA.IdTeam === match.Home.IdTeam ? headToHeadData.TeamA : headToHeadData.TeamB)
+    : null;
+  const awayTeamStats = headToHeadData && match.Home?.IdTeam && match.Away?.IdTeam
+    ? (headToHeadData.TeamA.IdTeam === match.Home.IdTeam ? headToHeadData.TeamB : headToHeadData.TeamA)
+    : null;
+
   return (
     <div className="bg-white min-h-screen">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -233,15 +272,15 @@ export default function MatchDetailsClient({
           {/* Match Scoreboard */}
           <div className="flex items-center justify-between mb-6 px-4">
             {/* Home Team - Name on left, Logo on right */}
-            <div className="flex-1 flex items-center gap-6">
+            <div className="flex-1 flex items-center gap-3 lg:gap-4 justify-end pr-4 lg:pr-8">
               <div>
-                <h2 className="text-3xl lg:text-4xl font-bold text-navy-950">{homeTeamName}</h2>
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-navy-950">{homeTeamName}</h2>
               </div>
               {match.Home?.IdTeam && (
                 <img
                   src={formatTeamLogo(match.Home.IdTeam)}
                   alt={homeTeamName}
-                  className="w-24 h-24 lg:w-28 lg:h-28 object-contain"
+                  className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 object-contain"
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement | null;
                     if (target) target.src = "/images/fallback.png";
@@ -251,40 +290,40 @@ export default function MatchDetailsClient({
             </div>
 
             {/* Score */}
-            <div className="mx-8 lg:mx-16 text-center">
-              <div className="flex items-center gap-5 lg:gap-6 mb-4">
-                <span className="text-6xl lg:text-7xl font-bold text-navy-950">
+            <div className="mx-4 sm:mx-6 lg:mx-8 xl:mx-12 text-center flex-shrink-0">
+              <div className="flex items-center gap-4 sm:gap-5 lg:gap-6 mb-4">
+                <span className="text-5xl sm:text-6xl lg:text-7xl font-bold text-navy-950">
                   {match.HomeTeamScore ?? match.Home?.Score ?? 0}
                 </span>
-                <span className="text-4xl lg:text-5xl text-gray-400">-</span>
-                <span className="text-6xl lg:text-7xl font-bold text-navy-950">
+                <span className="text-3xl sm:text-4xl lg:text-5xl text-gray-400">-</span>
+                <span className="text-5xl sm:text-6xl lg:text-7xl font-bold text-navy-950">
                   {match.AwayTeamScore ?? match.Away?.Score ?? 0}
                 </span>
               </div>
               {isFinished && (
-                <button className="bg-blue-600 text-white px-8 py-2.5 rounded-md text-sm font-semibold">
+                <button className="bg-blue-600 text-white px-6 sm:px-8 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-semibold">
                   Full Time
                 </button>
               )}
               {isLive && (
-                <button className="bg-red-600 text-white px-8 py-2.5 rounded-md text-sm font-semibold animate-pulse">
+                <button className="bg-red-600 text-white px-6 sm:px-8 py-2 sm:py-2.5 rounded-md text-xs sm:text-sm font-semibold animate-pulse">
                   LIVE {match.MatchTime || ""}
                 </button>
               )}
               {matchStatus === "scheduled" && (
-                <div className="text-lg font-semibold text-gray-500">
+                <div className="text-base sm:text-lg font-semibold text-gray-500">
                   {matchTime}
                 </div>
               )}
             </div>
 
             {/* Away Team - Logo on left, Name on right */}
-            <div className="flex-1 flex items-center gap-6 justify-end">
+            <div className="flex-1 flex items-center gap-3 lg:gap-4 justify-start pl-4 lg:pl-8">
               {match.Away?.IdTeam && (
                 <img
                   src={formatTeamLogo(match.Away.IdTeam)}
                   alt={awayTeamName}
-                  className="w-24 h-24 lg:w-28 lg:h-28 object-contain"
+                  className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 object-contain"
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement | null;
                     if (target) target.src = "/images/fallback.png";
@@ -292,7 +331,7 @@ export default function MatchDetailsClient({
                 />
               )}
               <div>
-                <h2 className="text-3xl lg:text-4xl font-bold text-navy-950">{awayTeamName}</h2>
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-navy-950">{awayTeamName}</h2>
               </div>
             </div>
           </div>
@@ -348,130 +387,223 @@ export default function MatchDetailsClient({
           )}
 
           {activeTab === "stats" && (
-            <div className="space-y-12">
+            <div className="space-y-10">
               {/* Head to Head Section */}
               <div>
-                <h3 className="text-2xl font-bold text-navy-950 text-center mb-10">Head to Head</h3>
-                <div className="flex items-center justify-center gap-16 lg:gap-20">
-                  {/* Home Team Stats */}
-                  <div className="flex items-center gap-5">
-                    {match.Home?.IdTeam && (
-                      <img
-                        src={formatTeamLogo(match.Home.IdTeam)}
-                        alt={homeTeamName}
-                        className="w-16 h-16 object-contain"
-                        onError={(e) => {
-                          const target = e.currentTarget as HTMLImageElement | null;
-                          if (target) target.src = "/images/fallback.png";
-                        }}
-                      />
-                    )}
-                    <div>
-                      <p className="text-xl font-bold text-navy-950">{homeTeamName}</p>
-                      <p className="text-sm text-gray-600 mt-1">3 wins</p>
+                <h3 className="text-2xl sm:text-3xl font-bold text-navy-950 text-center mb-8 sm:mb-10">Head to Head</h3>
+                {isLoadingHeadToHead ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fifa-header mx-auto mb-2"></div>
+                    <p className="text-gray-600 text-sm">Loading head-to-head statistics...</p>
+                  </div>
+                ) : headToHeadData && homeTeamStats && awayTeamStats ? (
+                  <div className="max-w-4xl mx-auto">
+                    <div className="flex items-center justify-center gap-6 sm:gap-8 lg:gap-12">
+                      {/* Home Team Stats */}
+                      <div className="flex flex-col items-center gap-2 flex-1 max-w-[180px]">
+                        {match.Home?.IdTeam && (
+                          <img
+                            src={formatTeamLogo(match.Home.IdTeam)}
+                            alt={homeTeamName}
+                            className="w-14 h-14 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain"
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement | null;
+                              if (target) target.src = "/images/fallback.png";
+                            }}
+                          />
+                        )}
+                        <p className="text-sm sm:text-base font-bold text-navy-950 text-center leading-tight">{homeTeamName}</p>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-navy-950 mt-1">
+                          {homeTeamStats.Wins} {homeTeamStats.Wins === 1 ? 'win' : 'wins'}
+                        </p>
+                      </div>
+
+                      {/* Center Stats - Total Matches and Draws */}
+                      <div className="text-center flex-shrink-0 px-4 sm:px-6 lg:px-8">
+                        <p className="text-5xl sm:text-6xl lg:text-7xl font-bold text-navy-950 mb-1">
+                          {headToHeadData.TeamA.MatchesPlayed}
+                        </p>
+                        <p className="text-sm sm:text-base text-gray-600">Draws: {headToHeadData.TeamA.Draws}</p>
+                      </div>
+
+                      {/* Away Team Stats */}
+                      <div className="flex flex-col items-center gap-2 flex-1 max-w-[180px]">
+                        {match.Away?.IdTeam && (
+                          <img
+                            src={formatTeamLogo(match.Away.IdTeam)}
+                            alt={awayTeamName}
+                            className="w-14 h-14 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain"
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement | null;
+                              if (target) target.src = "/images/fallback.png";
+                            }}
+                          />
+                        )}
+                        <p className="text-sm sm:text-base font-bold text-navy-950 text-center leading-tight">{awayTeamName}</p>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-navy-950 mt-1">
+                          {awayTeamStats.Wins} {awayTeamStats.Wins === 1 ? 'win' : 'wins'}
+                        </p>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Center Stats - Total Matches and Draws */}
-                  <div className="text-center">
-                    <p className="text-4xl lg:text-5xl font-semibold text-gray-700 mb-1">5</p>
-                    <p className="text-sm text-gray-600">Draws: 1</p>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No head-to-head data available</p>
                   </div>
-
-                  {/* Away Team Stats */}
-                  <div className="flex items-center gap-5">
-                    <div>
-                      <p className="text-xl font-bold text-navy-950">{awayTeamName}</p>
-                      <p className="text-sm text-gray-600 mt-1">1 wins</p>
-                    </div>
-                    {match.Away?.IdTeam && (
-                      <img
-                        src={formatTeamLogo(match.Away.IdTeam)}
-                        alt={awayTeamName}
-                        className="w-16 h-16 object-contain"
-                        onError={(e) => {
-                          const target = e.currentTarget as HTMLImageElement | null;
-                          if (target) target.src = "/images/fallback.png";
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Recent Meetings Section */}
               <div>
-                <h3 className="text-2xl font-bold text-navy-950 text-center mb-8">Recent meetings</h3>
-                <div className="bg-gray-50 rounded-lg p-6 lg:p-8">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-600 mb-3">
-                        {venue && `${venue}, `}
-                        {city && `${city} • `}
-                        {stageName} • {matchDate}
-                      </p>
-                      <div className="flex items-center gap-8">
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg font-bold text-navy-950">{homeTeamName}</span>
-                          {match.Home?.IdTeam && (
-                            <img
-                              src={formatTeamLogo(match.Home.IdTeam)}
-                              alt={homeTeamName}
-                              className="w-10 h-10 object-contain"
-                              onError={(e) => {
-                                const target = e.currentTarget as HTMLImageElement | null;
-                                if (target) target.src = "/images/fallback.png";
-                              }}
-                            />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl font-bold text-navy-950">
-                            {match.HomeTeamScore ?? match.Home?.Score ?? 0}
-                          </span>
-                          <span className="text-xl text-gray-400">-</span>
-                          <span className="text-2xl font-bold text-navy-950">
-                            {match.AwayTeamScore ?? match.Away?.Score ?? 0}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {match.Away?.IdTeam && (
-                            <img
-                              src={formatTeamLogo(match.Away.IdTeam)}
-                              alt={awayTeamName}
-                              className="w-10 h-10 object-contain"
-                              onError={(e) => {
-                                const target = e.currentTarget as HTMLImageElement | null;
-                                if (target) target.src = "/images/fallback.png";
-                              }}
-                            />
-                          )}
-                          <span className="text-lg font-bold text-navy-950">{awayTeamName}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {isFinished && (
-                        <span className="bg-blue-600 text-white px-4 py-1.5 rounded-md text-xs font-semibold">
-                          FT
-                        </span>
-                      )}
-                      <svg
-                        className="w-6 h-6 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-navy-950 text-center mb-6 sm:mb-8">Recent meetings</h3>
+                {isLoadingHeadToHead ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fifa-header mx-auto mb-2"></div>
+                    <p className="text-gray-600 text-sm">Loading historical matches...</p>
                   </div>
-                </div>
+                ) : headToHeadData && headToHeadData.MatchesList && headToHeadData.MatchesList.length > 0 ? (
+                  <div className="max-w-4xl mx-auto space-y-2">
+                    {headToHeadData.MatchesList.map((historicalMatch) => {
+                      const historicalHomeTeamName = historicalMatch.Home?.TeamName
+                        ? getTeamName(historicalMatch.Home.TeamName, locale === "en" ? "en-GB" : locale)
+                        : historicalMatch.Home?.ShortClubName || "TBD";
+                      const historicalAwayTeamName = historicalMatch.Away?.TeamName
+                        ? getTeamName(historicalMatch.Away.TeamName, locale === "en" ? "en-GB" : locale)
+                        : historicalMatch.Away?.ShortClubName || "TBD";
+                      
+                      const historicalVenue = historicalMatch.Stadium?.Name && historicalMatch.Stadium.Name.length > 0
+                        ? getTeamName(historicalMatch.Stadium.Name, locale === "en" ? "en-GB" : locale)
+                        : undefined;
+                      const historicalCity = historicalMatch.Stadium?.CityName && historicalMatch.Stadium.CityName.length > 0
+                        ? getTeamName(historicalMatch.Stadium.CityName, locale === "en" ? "en-GB" : locale)
+                        : undefined;
+                      const historicalStageName = historicalMatch.StageName && historicalMatch.StageName.length > 0
+                        ? getTeamName(historicalMatch.StageName, locale === "en" ? "en-GB" : locale)
+                        : "Regular Season";
+                      const historicalDate = formatMatchDate(historicalMatch.Date, locale);
+                      
+                      const historicalHomeScore = historicalMatch.HomeTeamScore ?? historicalMatch.Home?.Score ?? 0;
+                      const historicalAwayScore = historicalMatch.AwayTeamScore ?? historicalMatch.Away?.Score ?? 0;
+                      const historicalIsFinished = getMatchStatus(historicalMatch.MatchStatus) === "finished";
+                      
+                      // Determine winner for dot indicator
+                      const homeWon = historicalIsFinished && historicalHomeScore > historicalAwayScore;
+                      const awayWon = historicalIsFinished && historicalAwayScore > historicalHomeScore;
+                      
+                      return (
+                        <div key={historicalMatch.IdMatch} className="bg-white border border-gray-200 rounded-lg p-4 sm:p-5 hover:bg-gray-50 transition-colors cursor-pointer">
+                          {/* Use same layout structure as Head to Head for perfect alignment */}
+                          <div className="flex items-center justify-center gap-6 sm:gap-8 lg:gap-12">
+                            {/* Left: Venue and Date Info */}
+                            <div className="flex-1 max-w-[180px] text-left">
+                              <p className="text-xs sm:text-sm font-medium text-gray-900 mb-1 leading-tight">
+                                {historicalVenue && historicalCity 
+                                  ? `${historicalVenue}, ${historicalCity}`
+                                  : historicalVenue || historicalCity || 'Venue TBD'}
+                              </p>
+                              <p className="text-xs text-gray-500 leading-tight">
+                                {historicalStageName} • {historicalDate}
+                              </p>
+                            </div>
+
+                            {/* Center: Logos, Score, and Team Names - aligned with Head to Head center */}
+                            <div className="flex-shrink-0 px-4 sm:px-6 lg:px-8">
+                              <div className="flex flex-col items-center justify-center min-w-0">
+                                {/* Top Row: Logos and Score */}
+                                <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mb-2">
+                                  {/* Home Team Logo */}
+                                  <div className="flex flex-col items-center">
+                                    {historicalMatch.Home?.IdTeam && (
+                                      <img
+                                        src={formatTeamLogo(historicalMatch.Home.IdTeam)}
+                                        alt={historicalHomeTeamName}
+                                        className="w-10 h-10 sm:w-12 sm:h-12 object-contain flex-shrink-0"
+                                        onError={(e) => {
+                                          const target = e.currentTarget as HTMLImageElement | null;
+                                          if (target) target.src = "/images/fallback.png";
+                                        }}
+                                      />
+                                    )}
+                                    {/* Home Team Name below logo */}
+                                    <div className="flex items-center gap-1.5 mt-1.5">
+                                      <span className={`text-xs sm:text-sm font-semibold text-navy-950 text-center max-w-[120px] sm:max-w-[140px] truncate ${homeWon ? 'text-blue-600' : ''}`}>
+                                        {historicalHomeTeamName}
+                                      </span>
+                                      {homeWon && (
+                                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-600 rounded-full flex-shrink-0"></span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Score - centered */}
+                                  <div className="flex items-center gap-1.5 sm:gap-2">
+                                    <span className="text-2xl sm:text-3xl lg:text-3xl font-bold text-navy-950">
+                                      {historicalHomeScore}
+                                    </span>
+                                    <span className="text-xl sm:text-2xl text-gray-400">·</span>
+                                    <span className="text-2xl sm:text-3xl lg:text-3xl font-bold text-navy-950">
+                                      {historicalAwayScore}
+                                    </span>
+                                  </div>
+
+                                  {/* Away Team Logo */}
+                                  <div className="flex flex-col items-center">
+                                    {historicalMatch.Away?.IdTeam && (
+                                      <img
+                                        src={formatTeamLogo(historicalMatch.Away.IdTeam)}
+                                        alt={historicalAwayTeamName}
+                                        className="w-10 h-10 sm:w-12 sm:h-12 object-contain flex-shrink-0"
+                                        onError={(e) => {
+                                          const target = e.currentTarget as HTMLImageElement | null;
+                                          if (target) target.src = "/images/fallback.png";
+                                        }}
+                                      />
+                                    )}
+                                    {/* Away Team Name below logo */}
+                                    <div className="flex items-center gap-1.5 mt-1.5">
+                                      {awayWon && (
+                                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-600 rounded-full flex-shrink-0"></span>
+                                      )}
+                                      <span className={`text-xs sm:text-sm font-semibold text-navy-950 text-center max-w-[120px] sm:max-w-[140px] truncate ${awayWon ? 'text-blue-600' : ''}`}>
+                                        {historicalAwayTeamName}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Right: Status and Arrow */}
+                            <div className="flex-1 max-w-[180px] flex items-center justify-end gap-2">
+                              {historicalIsFinished && (
+                                <span className="bg-blue-600 text-white px-3 py-1 rounded text-xs font-semibold whitespace-nowrap">
+                                  FT
+                                </span>
+                              )}
+                              <svg
+                                className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 5l7 7-7 7"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No previous meetings found</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

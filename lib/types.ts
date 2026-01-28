@@ -442,3 +442,25 @@ export interface Standing {
   form?: ("W" | "D" | "L" | "-")[]; // Last 5 match results
 }
 
+// Head-to-Head API Types
+export interface HeadToHeadTeamStats {
+  IdTeam: string;
+  TeamName: TeamNameLocale[];
+  PictureUrl?: string;
+  IdCountry?: string;
+  MatchesPlayed: number;
+  Wins: number;
+  Losses: number;
+  Draws: number;
+  GoalsScored: number;
+  GoalsAgainst: number;
+}
+
+export interface HeadToHeadAPIResponse {
+  TeamA: HeadToHeadTeamStats;
+  TeamB: HeadToHeadTeamStats;
+  MatchesList: MatchAPIItem[];
+  Properties?: Record<string, unknown> | null;
+  IsUpdateable?: boolean | null;
+}
+
