@@ -97,7 +97,7 @@ export default function MatchDetailsClient({
   const [match, setMatch] = useState<MatchAPIItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "lineup" | "stats" | "table" | "related">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "lineup" | "stats" | "table" | "related">("stats");
 
   useEffect(() => {
     const loadMatchDetails = async () => {
@@ -336,6 +336,18 @@ export default function MatchDetailsClient({
         {/* Content Section */}
         <div className="mt-8">
           {activeTab === "overview" && (
+            <div className="text-center py-12">
+              <p className="text-gray-600">Overview information will be displayed here</p>
+            </div>
+          )}
+
+          {activeTab === "lineup" && (
+            <div className="text-center py-12">
+              <p className="text-gray-600">Line up information will be displayed here</p>
+            </div>
+          )}
+
+          {activeTab === "stats" && (
             <div className="space-y-12">
               {/* Head to Head Section */}
               <div>
@@ -461,18 +473,6 @@ export default function MatchDetailsClient({
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {activeTab === "lineup" && (
-            <div className="text-center py-12">
-              <p className="text-gray-600">Line up information will be displayed here</p>
-            </div>
-          )}
-
-          {activeTab === "stats" && (
-            <div className="text-center py-12">
-              <p className="text-gray-600">Match statistics will be displayed here</p>
             </div>
           )}
 
