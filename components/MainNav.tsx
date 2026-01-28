@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "./Sidebar";
 import LanguageDropdown from "./LanguageDropdown";
@@ -41,6 +41,22 @@ function FIFALogo() {
 
 export default function MainNav({ locale, dict }: MainNavProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [tournamentsOpen, setTournamentsOpen] = useState(false);
+  const tournamentsRef = useRef<HTMLDivElement | null>(null);
+  // attach outside click handler to tournamentsRef
+  useEffect(() => {
+    const el = tournamentsRef.current;
+    if (!el) return;
+
+    const onDocClick = (e: MouseEvent) => {
+      if (!el.contains(e.target as Node)) {
+        setTournamentsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [tournamentsRef]);
 
   const navItems = [
     { label: dict.nav.tournaments, href: `/${locale}/tournaments`, hasDropdown: true },
@@ -72,16 +88,53 @@ export default function MainNav({ locale, dict }: MainNavProps) {
           </div>
 
           {/* Center: Navigation links */}
-          <nav className="hidden lg:flex items-center h-full ml-10 flex-1" aria-label="Primary navigation">
-            {navItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="relative flex items-center h-16 px-5 text-sm font-semibold tracking-wide uppercase text-white transition-all duration-200 whitespace-nowrap hover:bg-fifa-header-hover after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-0 after:h-[3px] after:bg-white after:transition-all after:duration-200 hover:after:w-3/4"
-              >
-                {item.label}
-              </Link>
-            ))}
+          <nav className="hidden lg:flex items-center h-full ml-10 flex-1 relative" aria-label="Primary navigation">
+            {navItems.map((item) => {
+              if (item.hasDropdown && item.label === dict.nav.tournaments) {
+                return (
+                  <div
+                    key={item.label}
+                    ref={tournamentsRef}
+                    onMouseEnter={() => setTournamentsOpen(true)}
+                    className="relative"
+                  >
+                    <a
+                      href={item.href}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setTournamentsOpen((s) => !s);
+                      }}
+                      className="relative flex items-center h-16 px-5 text-sm font-semibold tracking-wide uppercase text-white transition-all duration-200 whitespace-nowrap hover:bg-fifa-header-hover after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-0 after:h-[3px] after:bg-white after:transition-all after:duration-200 hover:after:w-3/4"
+                    >
+                      {item.label}
+                    </a>
+
+                    {/* Child navbar that appears below */}
+                    {tournamentsOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-0 bg-surface-100 z-40 border-t border-gray-200">
+                        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+                          <div className="h-14 flex items-center">
+                            <Link href={`/${locale}/tournaments/mens/worldcup/canadamexicousa2026`} onClick={() => setTournamentsOpen(false)} className="text-sm font-medium text-navy-900 uppercase">
+                              FIFA WORLD CUP 2026™
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="relative flex items-center h-16 px-5 text-sm font-semibold tracking-wide uppercase text-white transition-all duration-200 whitespace-nowrap hover:bg-fifa-header-hover after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-0 after:h-[3px] after:bg-white after:transition-all after:duration-200 hover:after:w-3/4"
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Right section: Language & Account */}
@@ -101,4 +154,23 @@ export default function MainNav({ locale, dict }: MainNavProps) {
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} locale={locale} dict={dict} />
     </>
   );
+}
+
+// Close tournaments dropdown when clicking outside
+// (placed after component to ensure hooks in top-level component remain valid)
+function useOutsideClick(ref: React.RefObject<HTMLElement> | null, handler: () => void, when = true) {
+  useEffect(() => {
+    if (!when || !ref) return;
+    const el = ref.current;
+    if (!el) return;
+
+    const onDocClick = (e: MouseEvent) => {
+      if (!el.contains(e.target as Node)) {
+        handler();
+      }
+    };
+
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [ref, handler, when]);
 }
