@@ -724,7 +724,7 @@ export function transformStandings(data: StandingsAPIResponse | null): Standing[
       lost: entry.Lost,
       goalsFor: entry.For,
       goalsAgainst: entry.Against,
-      goalDiff: entry.GoalsDifference,
+      goalDiff: entry.GoalsDifference ?? entry.GoalsDiference ?? 0,
       points: entry.Points,
     };
   });
@@ -755,18 +755,24 @@ export async function fetchMatchDetails(
   language: string = "en"
 ): Promise<MatchAPIItem | null> {
   try {
-    // Try calendar API first (without idStage)
-    const calendarUrl = `${FIFA_CALENDAR_API}/${idCompetition}/${idSeason}/${idMatch}?language=${language}`;
-    let response = await fetch(calendarUrl, {
+    // Prioritize live API for complete data including lineup
+    const FIFA_LIVE_API = "https://api.fifa.com/api/v3/live/football";
+    const liveUrl = `${FIFA_LIVE_API}/${idCompetition}/${idSeason}/${idStage}/${idMatch}?language=${language}`;
+    
+    let response = await fetch(liveUrl, {
       cache: 'no-store',
-      headers: FIFA_API_HEADERS,
+      headers: {
+        ...FIFA_API_HEADERS,
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
+      },
     });
 
-    // If calendar API fails, try live API with idStage
+    // If live API fails, try calendar API (without idStage)
     if (!response.ok) {
-      const FIFA_LIVE_API = "https://api.fifa.com/api/v3/live/football";
-      const liveUrl = `${FIFA_LIVE_API}/${idCompetition}/${idSeason}/${idStage}/${idMatch}?language=${language}`;
-      response = await fetch(liveUrl, {
+      const calendarUrl = `${FIFA_CALENDAR_API}/${idCompetition}/${idSeason}/${idMatch}?language=${language}`;
+      response = await fetch(calendarUrl, {
         cache: 'no-store',
         headers: FIFA_API_HEADERS,
       });
@@ -778,6 +784,12 @@ export async function fetchMatchDetails(
     }
 
     const data = await response.json();
+    console.log('Match details API response:', {
+      hasLineup: !!(data.HomeTeam?.Players || data.Home?.Players),
+      homeTeamPlayers: data.HomeTeam?.Players?.length || data.Home?.Players?.length || 0,
+      awayTeamPlayers: data.AwayTeam?.Players?.length || data.Away?.Players?.length || 0,
+    });
+    
     // The API might return the match directly or wrapped in Results array
     return data.Results?.[0] || data || null;
   } catch (error) {

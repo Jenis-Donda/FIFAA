@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { fetchMatchDetails } from "@/lib/api";
-import type { MatchAPIItem } from "@/lib/types";
+import type { MatchAPIItem, Player, PlayerName } from "@/lib/types";
 import type { Dictionary } from "@/i18n/dictionaries";
 
 type MatchDetailsClientProps = {
@@ -23,6 +23,15 @@ type TeamNameLocale = {
  * Get team name from TeamNameLocale array
  */
 function getTeamName(names: TeamNameLocale[], preferredLocale: string = "en-GB"): string {
+  if (!names || names.length === 0) return "Unknown";
+  const localized = names.find((n) => n.Locale === preferredLocale);
+  return localized?.Description || names[0]?.Description || "Unknown";
+}
+
+/**
+ * Get player name from PlayerName array
+ */
+function getPlayerName(names: PlayerName[], preferredLocale: string = "en-GB"): string {
   if (!names || names.length === 0) return "Unknown";
   const localized = names.find((n) => n.Locale === preferredLocale);
   return localized?.Description || names[0]?.Description || "Unknown";
@@ -84,6 +93,148 @@ function formatMatchTime(dateString: string, locale: string = "en"): string {
   } catch {
     return "00:00";
   }
+}
+
+/**
+ * Get position label from position code
+ */
+function getPositionLabel(position: number): string {
+  switch (position) {
+    case 0:
+      return "Goalkeeper";
+    case 1:
+      return "Defender";
+    case 2:
+      return "Midfield";
+    case 3:
+      return "Attack";
+    default:
+      return "Unknown";
+  }
+}
+
+/**
+ * Group players by position for lineup display
+ */
+interface GroupedPlayers {
+  starters: {
+    goalkeepers: Player[];
+    defenders: Player[];
+    midfielders: Player[];
+    attackers: Player[];
+  };
+  substitutes: Player[];
+}
+
+function groupPlayersByPosition(players: Player[]): GroupedPlayers {
+  const grouped: GroupedPlayers = {
+    starters: {
+      goalkeepers: [],
+      defenders: [],
+      midfielders: [],
+      attackers: [],
+    },
+    substitutes: [],
+  };
+
+  if (!players) return grouped;
+
+  players.forEach((player) => {
+    if (player.Status === 2) {
+      // Substitute
+      grouped.substitutes.push(player);
+    } else if (player.Status === 1) {
+      // Starter
+      switch (player.Position) {
+        case 0:
+          grouped.starters.goalkeepers.push(player);
+          break;
+        case 1:
+          grouped.starters.defenders.push(player);
+          break;
+        case 2:
+          grouped.starters.midfielders.push(player);
+          break;
+        case 3:
+          grouped.starters.attackers.push(player);
+          break;
+      }
+    }
+  });
+
+  return grouped;
+}
+
+/**
+ * Player Card Component
+ */
+function PlayerCard({
+  player,
+  locale,
+  teamBookings,
+}: {
+  player: Player;
+  locale: string;
+  teamBookings?: Array<{ Card: number; IdPlayer: string }>;
+}) {
+  const playerName = getPlayerName(
+    player.PlayerName,
+    locale === "en" ? "en-GB" : locale
+  );
+
+  // Determine substitution status
+  const isSubbedOut = player.Status === 1 && player.FieldStatus === 2;
+  const isSubbedIn = player.Status === 2 && player.FieldStatus === 1;
+
+  // Check for yellow/red card from team bookings
+  const playerBookings =
+    teamBookings?.filter((b) => b.IdPlayer === player.IdPlayer) || [];
+  const hasYellowCard = playerBookings.some((b) => b.Card === 1);
+  const hasRedCard = playerBookings.some((b) => b.Card === 2 || b.Card === 3);
+
+  return (
+    <div className="flex items-center gap-2 py-2 px-3 bg-gray-50 rounded-md">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+          <svg
+            className="w-5 h-5 text-gray-400"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+          </svg>
+        </div>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-semibold text-gray-600 min-w-[1.5rem]">
+            {player.ShirtNumber}
+          </span>
+          <span className="text-sm font-medium text-navy-950 truncate max-w-[8.5rem]">
+            {playerName}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        {player.Captain && (
+          <span className="w-4 h-4 bg-yellow-400 text-black text-[10px] font-bold rounded-sm flex items-center justify-center">
+            C
+          </span>
+        )}
+        {hasYellowCard && (
+          <div className="w-2.5 h-3.5 bg-yellow-400 rounded-sm" />
+        )}
+        {hasRedCard && (
+          <div className="w-2.5 h-3.5 bg-red-600 rounded-sm" />
+        )}
+        {isSubbedOut && (
+          <span className="text-red-600 text-xs">⬇️</span>
+        )}
+        {isSubbedIn && (
+          <span className="text-green-600 text-xs">⬆️</span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function MatchDetailsClient({
@@ -174,12 +325,16 @@ export default function MatchDetailsClient({
   const isLive = matchStatus === "live";
   const isFinished = matchStatus === "finished";
 
-  const homeTeamName = match.Home?.TeamName
-    ? getTeamName(match.Home.TeamName, locale === "en" ? "en-GB" : locale)
-    : match.Home?.ShortClubName || "TBD";
-  const awayTeamName = match.Away?.TeamName
-    ? getTeamName(match.Away.TeamName, locale === "en" ? "en-GB" : locale)
-    : match.Away?.ShortClubName || "TBD";
+  // Support both Home/Away (calendar API) and HomeTeam/AwayTeam (live API)
+  const homeTeam = match.HomeTeam || match.Home;
+  const awayTeam = match.AwayTeam || match.Away;
+
+  const homeTeamName = homeTeam?.TeamName
+    ? getTeamName(homeTeam.TeamName, locale === "en" ? "en-GB" : locale)
+    : homeTeam?.ShortClubName || "TBD";
+  const awayTeamName = awayTeam?.TeamName
+    ? getTeamName(awayTeam.TeamName, locale === "en" ? "en-GB" : locale)
+    : awayTeam?.ShortClubName || "TBD";
 
   const competitionName = match.CompetitionName && match.CompetitionName.length > 0
     ? getTeamName(match.CompetitionName, locale === "en" ? "en-GB" : locale)
@@ -237,9 +392,9 @@ export default function MatchDetailsClient({
               <div>
                 <h2 className="text-3xl lg:text-4xl font-bold text-navy-950">{homeTeamName}</h2>
               </div>
-              {match.Home?.IdTeam && (
+              {homeTeam?.IdTeam && (
                 <img
-                  src={formatTeamLogo(match.Home.IdTeam)}
+                  src={formatTeamLogo(homeTeam.IdTeam)}
                   alt={homeTeamName}
                   className="w-24 h-24 lg:w-28 lg:h-28 object-contain"
                   onError={(e) => {
@@ -254,11 +409,11 @@ export default function MatchDetailsClient({
             <div className="mx-8 lg:mx-16 text-center">
               <div className="flex items-center gap-5 lg:gap-6 mb-4">
                 <span className="text-6xl lg:text-7xl font-bold text-navy-950">
-                  {match.HomeTeamScore ?? match.Home?.Score ?? 0}
+                  {match.HomeTeamScore ?? homeTeam?.Score ?? 0}
                 </span>
                 <span className="text-4xl lg:text-5xl text-gray-400">-</span>
                 <span className="text-6xl lg:text-7xl font-bold text-navy-950">
-                  {match.AwayTeamScore ?? match.Away?.Score ?? 0}
+                  {match.AwayTeamScore ?? awayTeam?.Score ?? 0}
                 </span>
               </div>
               {isFinished && (
@@ -280,9 +435,9 @@ export default function MatchDetailsClient({
 
             {/* Away Team - Logo on left, Name on right */}
             <div className="flex-1 flex items-center gap-6 justify-end">
-              {match.Away?.IdTeam && (
+              {awayTeam?.IdTeam && (
                 <img
-                  src={formatTeamLogo(match.Away.IdTeam)}
+                  src={formatTeamLogo(awayTeam.IdTeam)}
                   alt={awayTeamName}
                   className="w-24 h-24 lg:w-28 lg:h-28 object-contain"
                   onError={(e) => {
@@ -343,9 +498,9 @@ export default function MatchDetailsClient({
                 <div className="flex items-center justify-center gap-16 lg:gap-20">
                   {/* Home Team Stats */}
                   <div className="flex items-center gap-5">
-                    {match.Home?.IdTeam && (
+                    {homeTeam?.IdTeam && (
                       <img
-                        src={formatTeamLogo(match.Home.IdTeam)}
+                        src={formatTeamLogo(homeTeam.IdTeam)}
                         alt={homeTeamName}
                         className="w-16 h-16 object-contain"
                         onError={(e) => {
@@ -372,9 +527,9 @@ export default function MatchDetailsClient({
                       <p className="text-xl font-bold text-navy-950">{awayTeamName}</p>
                       <p className="text-sm text-gray-600 mt-1">1 wins</p>
                     </div>
-                    {match.Away?.IdTeam && (
+                    {awayTeam?.IdTeam && (
                       <img
-                        src={formatTeamLogo(match.Away.IdTeam)}
+                        src={formatTeamLogo(awayTeam.IdTeam)}
                         alt={awayTeamName}
                         className="w-16 h-16 object-contain"
                         onError={(e) => {
@@ -401,9 +556,9 @@ export default function MatchDetailsClient({
                       <div className="flex items-center gap-8">
                         <div className="flex items-center gap-3">
                           <span className="text-lg font-bold text-navy-950">{homeTeamName}</span>
-                          {match.Home?.IdTeam && (
+                          {homeTeam?.IdTeam && (
                             <img
-                              src={formatTeamLogo(match.Home.IdTeam)}
+                              src={formatTeamLogo(homeTeam.IdTeam)}
                               alt={homeTeamName}
                               className="w-10 h-10 object-contain"
                               onError={(e) => {
@@ -415,17 +570,17 @@ export default function MatchDetailsClient({
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-2xl font-bold text-navy-950">
-                            {match.HomeTeamScore ?? match.Home?.Score ?? 0}
+                            {match.HomeTeamScore ?? homeTeam?.Score ?? 0}
                           </span>
                           <span className="text-xl text-gray-400">-</span>
                           <span className="text-2xl font-bold text-navy-950">
-                            {match.AwayTeamScore ?? match.Away?.Score ?? 0}
+                            {match.AwayTeamScore ?? awayTeam?.Score ?? 0}
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          {match.Away?.IdTeam && (
+                          {awayTeam?.IdTeam && (
                             <img
-                              src={formatTeamLogo(match.Away.IdTeam)}
+                              src={formatTeamLogo(awayTeam.IdTeam)}
                               alt={awayTeamName}
                               className="w-10 h-10 object-contain"
                               onError={(e) => {
@@ -465,8 +620,352 @@ export default function MatchDetailsClient({
           )}
 
           {activeTab === "lineup" && (
-            <div className="text-center py-12">
-              <p className="text-gray-600">Line up information will be displayed here</p>
+            <div className="space-y-8 px-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Home Team Lineup */}
+                <div>
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        {homeTeam?.IdTeam && (
+                          <img
+                            src={formatTeamLogo(homeTeam.IdTeam)}
+                            alt={homeTeamName}
+                            className="w-8 h-8 object-contain"
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement | null;
+                              if (target) target.src = "/images/fallback.png";
+                            }}
+                          />
+                        )}
+                        <h3 className="text-lg font-bold text-navy-950">{homeTeamName}</h3>
+                      </div>
+                      {homeTeam?.Tactics && (
+                        <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                          {homeTeam.Tactics}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {homeTeam?.Players && homeTeam.Players.length > 0 ? (
+                    <>
+                      {(() => {
+                        const grouped = groupPlayersByPosition(homeTeam.Players);
+                        return (
+                          <div className="space-y-4">
+                            <div className="text-xs font-semibold text-gray-600 mb-2">Starting Line Up</div>
+                            
+                            {/* Goalkeeper */}
+                            {grouped.starters.goalkeepers.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1.5">
+                                  Goalkeeper
+                                </h4>
+                                <div className="space-y-1.5">
+                                  {grouped.starters.goalkeepers.map((player) => (
+                                    <PlayerCard 
+                                      key={player.IdPlayer} 
+                                      player={player} 
+                                      locale={locale}
+                                      teamBookings={homeTeam?.Bookings}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Defenders */}
+                            {grouped.starters.defenders.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1.5">
+                                  Defender
+                                </h4>
+                                <div className="space-y-1.5">
+                                  {grouped.starters.defenders.map((player) => (
+                                    <PlayerCard 
+                                      key={player.IdPlayer} 
+                                      player={player} 
+                                      locale={locale}
+                                      teamBookings={homeTeam?.Bookings}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Midfielders */}
+                            {grouped.starters.midfielders.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1.5">
+                                  Midfield
+                                </h4>
+                                <div className="space-y-1.5">
+                                  {grouped.starters.midfielders.map((player) => (
+                                    <PlayerCard 
+                                      key={player.IdPlayer} 
+                                      player={player} 
+                                      locale={locale}
+                                      teamBookings={homeTeam?.Bookings}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Attackers */}
+                            {grouped.starters.attackers.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1.5">
+                                  Attack
+                                </h4>
+                                <div className="space-y-1.5">
+                                  {grouped.starters.attackers.map((player) => (
+                                    <PlayerCard 
+                                      key={player.IdPlayer} 
+                                      player={player} 
+                                      locale={locale}
+                                      teamBookings={homeTeam?.Bookings}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Substitutes */}
+                            {grouped.substitutes.length > 0 && (
+                              <div className="mt-6">
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1.5">
+                                  Substitutes
+                                </h4>
+                                <div className="space-y-1.5">
+                                  {grouped.substitutes.map((player) => (
+                                    <PlayerCard 
+                                      key={player.IdPlayer} 
+                                      player={player} 
+                                      locale={locale}
+                                      teamBookings={homeTeam?.Bookings}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">Lineup not available</p>
+                    </div>
+                  )}
+
+                  {/* Manager Section */}
+                  {homeTeam?.Coaches && homeTeam.Coaches.length > 0 && (
+                    <>
+                      {(() => {
+                        const headCoach = homeTeam.Coaches.find((coach) => coach.Role === 0);
+                        if (!headCoach) return null;
+                        
+                        const coachName = getPlayerName(headCoach.Name, locale === "en" ? "en-GB" : locale);
+                        const coachAlias = headCoach.Alias && headCoach.Alias.length > 0
+                          ? getPlayerName(headCoach.Alias, locale === "en" ? "en-GB" : locale)
+                          : coachName;
+                        
+                        return (
+                          <div className="mt-6">
+                            <h4 className="text-xs font-semibold text-gray-700 mb-2">Manager</h4>
+                            <div className="flex items-center gap-2 py-2 px-3 bg-gray-50 rounded-md">
+                              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                </svg>
+                              </div>
+                              <div>
+                                <span className="text-sm font-medium text-navy-950">
+                                  M {coachAlias}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </>
+                  )}
+                </div>
+
+                {/* Away Team Lineup */}
+                <div>
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        {awayTeam?.IdTeam && (
+                          <img
+                            src={formatTeamLogo(awayTeam.IdTeam)}
+                            alt={awayTeamName}
+                            className="w-8 h-8 object-contain"
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement | null;
+                              if (target) target.src = "/images/fallback.png";
+                            }}
+                          />
+                        )}
+                        <h3 className="text-lg font-bold text-navy-950">{awayTeamName}</h3>
+                      </div>
+                      {awayTeam?.Tactics && (
+                        <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                          {awayTeam.Tactics}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {awayTeam?.Players && awayTeam.Players.length > 0 ? (
+                    <>
+                      {(() => {
+                        const grouped = groupPlayersByPosition(awayTeam.Players);
+                        return (
+                          <div className="space-y-4">
+                            <div className="text-xs font-semibold text-gray-600 mb-2">Starting Line Up</div>
+                            
+                            {/* Goalkeeper */}
+                            {grouped.starters.goalkeepers.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1.5">
+                                  Goalkeeper
+                                </h4>
+                                <div className="space-y-1.5">
+                                  {grouped.starters.goalkeepers.map((player) => (
+                                    <PlayerCard 
+                                      key={player.IdPlayer} 
+                                      player={player} 
+                                      locale={locale}
+                                      teamBookings={awayTeam?.Bookings}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Defenders */}
+                            {grouped.starters.defenders.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1.5">
+                                  Defender
+                                </h4>
+                                <div className="space-y-1.5">
+                                  {grouped.starters.defenders.map((player) => (
+                                    <PlayerCard 
+                                      key={player.IdPlayer} 
+                                      player={player} 
+                                      locale={locale}
+                                      teamBookings={awayTeam?.Bookings}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Midfielders */}
+                            {grouped.starters.midfielders.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1.5">
+                                  Midfield
+                                </h4>
+                                <div className="space-y-1.5">
+                                  {grouped.starters.midfielders.map((player) => (
+                                    <PlayerCard 
+                                      key={player.IdPlayer} 
+                                      player={player} 
+                                      locale={locale}
+                                      teamBookings={awayTeam?.Bookings}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Attackers */}
+                            {grouped.starters.attackers.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1.5">
+                                  Attack
+                                </h4>
+                                <div className="space-y-1.5">
+                                  {grouped.starters.attackers.map((player) => (
+                                    <PlayerCard 
+                                      key={player.IdPlayer} 
+                                      player={player} 
+                                      locale={locale}
+                                      teamBookings={awayTeam?.Bookings}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Substitutes */}
+                            {grouped.substitutes.length > 0 && (
+                              <div className="mt-6">
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1.5">
+                                  Substitutes
+                                </h4>
+                                <div className="space-y-1.5">
+                                  {grouped.substitutes.map((player) => (
+                                    <PlayerCard 
+                                      key={player.IdPlayer} 
+                                      player={player} 
+                                      locale={locale}
+                                      teamBookings={awayTeam?.Bookings}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">Lineup not available</p>
+                    </div>
+                  )}
+
+                  {/* Manager Section */}
+                  {awayTeam?.Coaches && awayTeam.Coaches.length > 0 && (
+                    <>
+                      {(() => {
+                        const headCoach = awayTeam.Coaches.find((coach) => coach.Role === 0);
+                        if (!headCoach) return null;
+                        
+                        const coachName = getPlayerName(headCoach.Name, locale === "en" ? "en-GB" : locale);
+                        const coachAlias = headCoach.Alias && headCoach.Alias.length > 0
+                          ? getPlayerName(headCoach.Alias, locale === "en" ? "en-GB" : locale)
+                          : coachName;
+                        
+                        return (
+                          <div className="mt-6">
+                            <h4 className="text-xs font-semibold text-gray-700 mb-2">Manager</h4>
+                            <div className="flex items-center gap-2 py-2 px-3 bg-gray-50 rounded-md">
+                              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                </svg>
+                              </div>
+                              <div>
+                                <span className="text-sm font-medium text-navy-950">
+                                  M {coachAlias}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
