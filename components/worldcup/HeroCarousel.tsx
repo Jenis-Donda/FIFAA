@@ -145,7 +145,7 @@ export default function HeroCarousel({
             {/* Main Carousel Container - Full height */}
             <div className="px-4 sm:px-6 lg:px-8 xl:px-12 py-4 lg:py-6 h-full">
                 <div
-                    className="relative overflow-hidden bg-[#1a5694] h-full flex flex-col"
+                    className="relative overflow-hidden bg-black h-full flex flex-col"
                     onMouseEnter={() => setIsPaused(true)}
                     onMouseLeave={() => setIsPaused(false)}
                 >
@@ -214,7 +214,7 @@ export default function HeroCarousel({
 
                             {/* Next Up Preview Panel - Desktop */}
                             <div
-                                className="hidden lg:flex absolute right-0 top-0 bottom-0 w-[180px] xl:w-[200px] 2xl:w-[220px] bg-[#0d3a5c]/90 backdrop-blur-sm flex-col cursor-pointer group z-10"
+                                className="hidden lg:flex absolute right-0 top-0 bottom-0 w-[180px] xl:w-[200px] 2xl:w-[220px] bg-black/90 backdrop-blur-sm flex-col cursor-pointer group z-10"
                                 onClick={() => goToSlide(nextIndex, "next")}
                             >
                                 {/* Text Section */}
@@ -250,7 +250,7 @@ export default function HeroCarousel({
                     </div>
 
                     {/* Bottom Navigation - Inside the blue card */}
-                    <div className="bg-[#0d3a5c] flex-shrink-0">
+                    <div className="bg-black flex-shrink-0">
                         <div className="flex items-stretch">
                             {/* Previous Arrow */}
                             <button
@@ -275,7 +275,7 @@ export default function HeroCarousel({
                                         <button
                                             key={slide.id}
                                             onClick={() => goToSlide(actualIndex)}
-                                            className={`flex-1 text-left px-4 sm:px-5 lg:px-6 py-5 sm:py-6 transition-all duration-300 relative border-r border-white/10 last:border-r-0 ${isActive ? "bg-[#1a5694]" : "hover:bg-white/5"
+                                            className={`flex-1 text-left px-4 sm:px-5 lg:px-6 py-5 sm:py-6 transition-all duration-300 relative border-r border-white/10 last:border-r-0 
                                                 }`}
                                         >
                                             {/* Eyebrow */}
