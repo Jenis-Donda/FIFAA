@@ -242,6 +242,18 @@ export interface MatchTeam {
   PictureUrl?: string;
   Score?: number;
   IdCountry?: string;
+  Tactics?: string; // Formation like "3-5-2"
+  TeamType?: number;
+  AgeType?: number;
+  FootballType?: number;
+  Gender?: number;
+  IdAssociation?: string;
+  Side?: string | null;
+  Coaches?: TeamCoach[];
+  Players?: Player[];
+  Bookings?: TeamBooking[];
+  Goals?: TeamGoal[];
+  Substitutions?: TeamSubstitution[];
 }
 
 export interface MatchCompetition {
@@ -265,6 +277,77 @@ export interface MatchVenue {
   IdCountry: string;
 }
 
+// Player Types for Lineup
+export interface PlayerName {
+  Locale: string;
+  Description: string;
+}
+
+export interface Player {
+  IdPlayer: string;
+  IdTeam: string;
+  ShirtNumber: number;
+  PlayerName: PlayerName[];
+  ShortName?: PlayerName[];
+  Position: number; // 0=Goalkeeper, 1=Defender, 2=Midfield, 3=Attack, 6=Unknown/Other
+  Status: number; // 1=Starter, 2=Substitute
+  FieldStatus: number; // 1=On field, 2=Off field
+  Captain: boolean;
+  SpecialStatus: number | null;
+  PlayerPicture: {
+    Id: string;
+    PictureUrl: string;
+  } | null;
+  LineupX: number | null;
+  LineupY: number | null;
+  [key: string]: unknown;
+}
+
+export interface TeamBooking {
+  Card: number; // 1=Yellow, 2=Red, 3=Second Yellow
+  Period: number;
+  IdEvent: string | null;
+  EventNumber: number | null;
+  IdPlayer: string;
+  IdCoach: string | null;
+  IdTeam: string;
+  Minute: string;
+  Reason: string;
+}
+
+export interface TeamGoal {
+  Type: number;
+  IdPlayer: string;
+  Minute: string;
+  IdAssistPlayer: string | null;
+  Period: number;
+  IdGoal: string | null;
+  IdTeam: string;
+}
+
+export interface TeamSubstitution {
+  IdEvent: string | null;
+  Period: number;
+  Reason: number;
+  SubstitutePosition: number;
+  IdPlayerOff: string;
+  IdPlayerOn: string;
+  PlayerOffName: PlayerName[];
+  PlayerOnName: PlayerName[];
+  Minute: string;
+  IdTeam: string;
+}
+
+export interface TeamCoach {
+  IdCoach: string;
+  IdCountry: string;
+  PictureUrl: string | null;
+  Name: PlayerName[];
+  Alias: PlayerName[];
+  Role: number; // 0=Head Coach, 1=Assistant
+  SpecialStatus: number | null;
+}
+
 export interface MatchAPIItem {
   IdMatch: string;
   IdStage: string;
@@ -276,8 +359,10 @@ export interface MatchAPIItem {
   MatchTime?: string;
   Date: string;
   LocalDate: string;
-  Home: MatchTeam;
-  Away: MatchTeam;
+  Home: MatchTeam;  // Calendar API uses this
+  Away: MatchTeam;  // Calendar API uses this
+  HomeTeam?: MatchTeam;  // Live API uses this
+  AwayTeam?: MatchTeam;  // Live API uses this
   Stadium?: {
     IdStadium?: string | null;
     Name?: TeamNameLocale[];
@@ -298,11 +383,21 @@ export interface MatchAPIItem {
   AwayTeamScore?: number;
   AggregateHomeTeamScore?: number | null;
   AggregateAwayTeamScore?: number | null;
+  HomeTeamPenaltyScore?: number | null;
+  AwayTeamPenaltyScore?: number | null;
   Winner?: string;
   MatchNumber?: number | null;
   TimeDefined?: boolean;
   OfficialityStatus?: number;
   Attendance?: string;
+  Weather?: string | null;
+  Period?: number;
+  FirstHalfTime?: string | null;
+  SecondHalfTime?: string | null;
+  FirstHalfExtraTime?: number;
+  SecondHalfExtraTime?: number;
+  ResultType?: number;
+  CoverageLevel?: number;
   Officials?: Array<{
     IdCountry?: string;
     OfficialId?: string;
@@ -311,6 +406,12 @@ export interface MatchAPIItem {
     OfficialType?: number;
     TypeLocalized?: TeamNameLocale[];
   }>;
+  BallPossession?: {
+    Intervals: unknown[];
+    LastX: unknown[];
+    OverallHome: number;
+    OverallAway: number;
+  };
   Properties?: Record<string, unknown>;
   [key: string]: unknown; // Allow additional properties
 }

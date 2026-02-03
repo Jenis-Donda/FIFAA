@@ -73,7 +73,7 @@ export default function Sidebar({ isOpen, onClose, locale, dict }: SidebarProps)
     TOURNAMENTS: [
       { label: dict.sidebar.overview, href: `/${locale}/tournaments` },
       { label: dict.sidebar.upcomingTournaments, isHeader: true },
-      { label: "FIFA WORLD CUP 2026™", href: `/${locale}/worldcup/2026` },
+      { label: "FIFA WORLD CUP 2026™", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026` },
       { label: "FIFA WOMEN'S WORLD CUP 2027™", href: `/${locale}/womensworldcup/2027` },
       { label: "FIFA WOMEN'S CHAMPIONS CUP 2026", href: `/${locale}/wcc/2026` },
       { label: "FIFA U-20 WOMEN'S WORLD CUP 2026", href: `/${locale}/u20wwc/2026` },
@@ -213,11 +213,10 @@ export default function Sidebar({ isOpen, onClose, locale, dict }: SidebarProps)
                         onClose();
                       }
                     }}
-                    className={`w-full flex items-center justify-between px-6 py-3.5 text-sm font-semibold uppercase tracking-wide transition-colors ${
-                      activeSubmenu === item.key
+                    className={`w-full flex items-center justify-between px-6 py-3.5 text-sm font-semibold uppercase tracking-wide transition-colors ${activeSubmenu === item.key
                         ? "bg-white/10 text-white"
                         : "text-white/90 hover:bg-white/5 hover:text-white"
-                    }`}
+                      }`}
                   >
                     {item.label}
                     <ChevronRight />
@@ -266,11 +265,10 @@ export default function Sidebar({ isOpen, onClose, locale, dict }: SidebarProps)
               </div>
               <button
                 onMouseEnter={handleLanguagesHover}
-                className={`w-full flex items-center justify-between px-6 py-2.5 text-sm font-medium uppercase tracking-wide transition-colors ${
-                  showLanguages
+                className={`w-full flex items-center justify-between px-6 py-2.5 text-sm font-medium uppercase tracking-wide transition-colors ${showLanguages
                     ? "bg-white/10 text-white"
                     : "text-white/90 hover:bg-white/5 hover:text-white"
-                }`}
+                  }`}
               >
                 {dict.sidebar.languages}
                 <ChevronRight />
@@ -289,11 +287,10 @@ export default function Sidebar({ isOpen, onClose, locale, dict }: SidebarProps)
                   <button
                     key={loc}
                     onClick={() => handleLanguageChange(loc)}
-                    className={`block w-full text-left px-6 py-3 text-sm font-medium uppercase tracking-wide transition-colors ${
-                      locale === loc
+                    className={`block w-full text-left px-6 py-3 text-sm font-medium uppercase tracking-wide transition-colors ${locale === loc
                         ? "text-blue-500 bg-blue-50"
                         : "text-navy-900 hover:bg-gray-200"
-                    }`}
+                      }`}
                   >
                     {localeNames[loc]}
                   </button>
