@@ -286,6 +286,70 @@ export default function MatchDetailsClient({
     loadMatchDetails();
   }, [idCompetition, idSeason, idStage, idMatch, locale]);
 
+  // Poll match details for live updates every 30 seconds
+  useEffect(() => {
+    // Only poll if match is live
+    if (!match || getMatchStatus(match.MatchStatus) !== "live") {
+      return;
+    }
+
+    let mounted = true;
+
+    const fetchLatestMatchDetails = async () => {
+      try {
+        const matchData = await fetchMatchDetails(
+          idCompetition,
+          idSeason,
+          idStage,
+          idMatch,
+          locale
+        );
+
+        if (!mounted || !matchData) return;
+
+        // Only update live data fields to avoid jarring UI changes
+        setMatch((prevMatch) => {
+          if (!prevMatch) return prevMatch;
+          return {
+            ...prevMatch,
+            HomeTeamScore: matchData.HomeTeamScore ?? matchData.HomeTeam?.Score ?? prevMatch.HomeTeamScore,
+            AwayTeamScore: matchData.AwayTeamScore ?? matchData.AwayTeam?.Score ?? prevMatch.AwayTeamScore,
+            MatchStatus: matchData.MatchStatus,
+            MatchTime: matchData.MatchTime,
+            // Update scores in Home/Away objects if they exist
+            Home: prevMatch.Home ? {
+              ...prevMatch.Home,
+              Score: matchData.HomeTeam?.Score ?? matchData.Home?.Score ?? prevMatch.Home.Score,
+            } : prevMatch.Home,
+            Away: prevMatch.Away ? {
+              ...prevMatch.Away,
+              Score: matchData.AwayTeam?.Score ?? matchData.Away?.Score ?? prevMatch.Away.Score,
+            } : prevMatch.Away,
+            HomeTeam: prevMatch.HomeTeam ? {
+              ...prevMatch.HomeTeam,
+              Score: matchData.HomeTeam?.Score ?? prevMatch.HomeTeam.Score,
+            } : prevMatch.HomeTeam,
+            AwayTeam: prevMatch.AwayTeam ? {
+              ...prevMatch.AwayTeam,
+              Score: matchData.AwayTeam?.Score ?? prevMatch.AwayTeam.Score,
+            } : prevMatch.AwayTeam,
+          };
+        });
+      } catch (err) {
+        // Silent fail - do not disturb UI if polling fails
+        // console.debug("Polling error:", err);
+      }
+    };
+
+    // Start polling every 30 seconds
+    const id = setInterval(fetchLatestMatchDetails, 30_000);
+
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, [match?.MatchStatus, idCompetition, idSeason, idStage, idMatch, locale]);
+
   // Fetch head-to-head data when match is loaded
   useEffect(() => {
     const loadHeadToHead = async () => {
