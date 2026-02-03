@@ -97,6 +97,228 @@ function formatMatchTime(dateString: string, locale: string = "en"): string {
 }
 
 /**
+ * Get goal scorer name from player ID
+ * Tries to find player in the team's players array
+ */
+function getGoalScorerName(
+  playerId: string,
+  players: Player[] | undefined,
+  locale: string = "en-GB"
+): string {
+  if (!players || !playerId) return "Unknown";
+  // Find player by IdPlayer (works for both starters and substitutes)
+  const player = players.find((p) => p.IdPlayer === playerId);
+  if (!player || !player.PlayerName) return "Unknown";
+  return getPlayerName(player.PlayerName, locale);
+}
+
+/**
+ * Format goal minute for display (e.g., "24'", "45'+4'")
+ */
+function formatGoalMinute(minute: string, period: number): string {
+  if (!minute) return "";
+  // Handle extra time notation (e.g., "45+4" becomes "45'+4'")
+  // Also handle cases where minute already has apostrophe
+  if (minute.includes("+")) {
+    return minute.replace(/(\d+)\+(\d+)/, "$1'+$2'");
+  }
+  // If minute doesn't already end with apostrophe, add it
+  return minute.endsWith("'") ? minute : `${minute}'`;
+}
+
+/**
+ * Get goal type indicator
+ * Type: 0 = Regular, 1 = Penalty, 2 = Own Goal, etc.
+ */
+function getGoalTypeIndicator(type: number): { icon: string; color: string } {
+  switch (type) {
+    case 1:
+      return { icon: "⚽", color: "text-orange-500" }; // Penalty
+    case 2:
+      return { icon: "⚽", color: "text-red-500" }; // Own Goal
+    default:
+      return { icon: "⚽", color: "text-gray-700" }; // Regular goal
+  }
+}
+
+/**
+ * Match Event Types for Timeline
+ */
+type MatchEventType = "goal" | "yellow-card" | "red-card" | "substitution";
+
+interface MatchEvent {
+  id: string;
+  type: MatchEventType;
+  minute: string;
+  period: number;
+  teamId: string;
+  isHome: boolean;
+  playerId?: string;
+  playerName?: string;
+  assistPlayerId?: string;
+  assistPlayerName?: string;
+  playerOffId?: string;
+  playerOffName?: string;
+  playerOnId?: string;
+  playerOnName?: string;
+  goalType?: number;
+  cardType?: number; // 1=Yellow, 2=Red, 3=Second Yellow
+}
+
+/**
+ * Extract and combine all match events into a unified timeline
+ */
+function extractMatchEvents(
+  match: MatchAPIItem,
+  locale: string = "en-GB"
+): MatchEvent[] {
+  const events: MatchEvent[] = [];
+  const homeTeam = match.HomeTeam || match.Home;
+  const awayTeam = match.AwayTeam || match.Away;
+  const homeTeamId = homeTeam?.IdTeam;
+  const awayTeamId = awayTeam?.IdTeam;
+
+  // Extract goals
+  if (homeTeam?.Goals) {
+    homeTeam.Goals.forEach((goal) => {
+      const playerName = getGoalScorerName(goal.IdPlayer, homeTeam.Players, locale);
+      const assistName = goal.IdAssistPlayer
+        ? getGoalScorerName(goal.IdAssistPlayer, homeTeam.Players, locale)
+        : undefined;
+      
+      events.push({
+        id: goal.IdGoal || `goal-${goal.IdPlayer}-${goal.Minute}`,
+        type: "goal",
+        minute: goal.Minute,
+        period: goal.Period,
+        teamId: goal.IdTeam,
+        isHome: true,
+        playerId: goal.IdPlayer,
+        playerName,
+        assistPlayerId: goal.IdAssistPlayer || undefined,
+        assistPlayerName: assistName !== "Unknown" ? assistName : undefined,
+        goalType: goal.Type,
+      });
+    });
+  }
+
+  if (awayTeam?.Goals) {
+    awayTeam.Goals.forEach((goal) => {
+      const playerName = getGoalScorerName(goal.IdPlayer, awayTeam.Players, locale);
+      const assistName = goal.IdAssistPlayer
+        ? getGoalScorerName(goal.IdAssistPlayer, awayTeam.Players, locale)
+        : undefined;
+      
+      events.push({
+        id: goal.IdGoal || `goal-${goal.IdPlayer}-${goal.Minute}`,
+        type: "goal",
+        minute: goal.Minute,
+        period: goal.Period,
+        teamId: goal.IdTeam,
+        isHome: false,
+        playerId: goal.IdPlayer,
+        playerName,
+        assistPlayerId: goal.IdAssistPlayer || undefined,
+        assistPlayerName: assistName !== "Unknown" ? assistName : undefined,
+        goalType: goal.Type,
+      });
+    });
+  }
+
+  // Extract bookings (cards)
+  if (homeTeam?.Bookings) {
+    homeTeam.Bookings.forEach((booking) => {
+      const playerName = getGoalScorerName(booking.IdPlayer, homeTeam.Players, locale);
+      const eventType: MatchEventType = booking.Card === 2 || booking.Card === 3 ? "red-card" : "yellow-card";
+      
+      events.push({
+        id: booking.IdEvent || `booking-${booking.IdPlayer}-${booking.Minute}`,
+        type: eventType,
+        minute: booking.Minute,
+        period: booking.Period,
+        teamId: booking.IdTeam,
+        isHome: true,
+        playerId: booking.IdPlayer,
+        playerName,
+        cardType: booking.Card,
+      });
+    });
+  }
+
+  if (awayTeam?.Bookings) {
+    awayTeam.Bookings.forEach((booking) => {
+      const playerName = getGoalScorerName(booking.IdPlayer, awayTeam.Players, locale);
+      const eventType: MatchEventType = booking.Card === 2 || booking.Card === 3 ? "red-card" : "yellow-card";
+      
+      events.push({
+        id: booking.IdEvent || `booking-${booking.IdPlayer}-${booking.Minute}`,
+        type: eventType,
+        minute: booking.Minute,
+        period: booking.Period,
+        teamId: booking.IdTeam,
+        isHome: false,
+        playerId: booking.IdPlayer,
+        playerName,
+        cardType: booking.Card,
+      });
+    });
+  }
+
+  // Extract substitutions
+  if (homeTeam?.Substitutions) {
+    homeTeam.Substitutions.forEach((sub) => {
+      const playerOffName = getPlayerName(sub.PlayerOffName, locale);
+      const playerOnName = getPlayerName(sub.PlayerOnName, locale);
+      
+      events.push({
+        id: sub.IdEvent || `sub-${sub.IdPlayerOff}-${sub.Minute}`,
+        type: "substitution",
+        minute: sub.Minute,
+        period: sub.Period,
+        teamId: sub.IdTeam,
+        isHome: true,
+        playerOffId: sub.IdPlayerOff,
+        playerOffName,
+        playerOnId: sub.IdPlayerOn,
+        playerOnName,
+      });
+    });
+  }
+
+  if (awayTeam?.Substitutions) {
+    awayTeam.Substitutions.forEach((sub) => {
+      const playerOffName = getPlayerName(sub.PlayerOffName, locale);
+      const playerOnName = getPlayerName(sub.PlayerOnName, locale);
+      
+      events.push({
+        id: sub.IdEvent || `sub-${sub.IdPlayerOff}-${sub.Minute}`,
+        type: "substitution",
+        minute: sub.Minute,
+        period: sub.Period,
+        teamId: sub.IdTeam,
+        isHome: false,
+        playerOffId: sub.IdPlayerOff,
+        playerOffName,
+        playerOnId: sub.IdPlayerOn,
+        playerOnName,
+      });
+    });
+  }
+
+  // Sort events by period first, then by minute
+  events.sort((a, b) => {
+    if (a.period !== b.period) {
+      return a.period - b.period;
+    }
+    const minuteA = parseInt(a.minute?.replace(/\D/g, '') || '0');
+    const minuteB = parseInt(b.minute?.replace(/\D/g, '') || '0');
+    return minuteA - minuteB;
+  });
+
+  return events;
+}
+
+/**
  * Get position label from position code
  */
 function getPositionLabel(position: number): string {
@@ -253,7 +475,7 @@ export default function MatchDetailsClient({
   const [isLoadingHeadToHead, setIsLoadingHeadToHead] = useState(false);
   const [isLoadingStandings, setIsLoadingStandings] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "lineup" | "stats" | "table" | "related">("stats");
+  const [activeTab, setActiveTab] = useState<"overview" | "lineup" | "stats" | "table" | "related">("overview");
   const router = useRouter();
 
   useEffect(() => {
@@ -312,28 +534,39 @@ export default function MatchDetailsClient({
         // Only update live data fields to avoid jarring UI changes
         setMatch((prevMatch) => {
           if (!prevMatch) return prevMatch;
+          const updatedHomeTeam = matchData.HomeTeam || matchData.Home;
+          const updatedAwayTeam = matchData.AwayTeam || matchData.Away;
+          
           return {
             ...prevMatch,
-            HomeTeamScore: matchData.HomeTeamScore ?? matchData.HomeTeam?.Score ?? prevMatch.HomeTeamScore,
-            AwayTeamScore: matchData.AwayTeamScore ?? matchData.AwayTeam?.Score ?? prevMatch.AwayTeamScore,
+            HomeTeamScore: matchData.HomeTeamScore ?? updatedHomeTeam?.Score ?? prevMatch.HomeTeamScore,
+            AwayTeamScore: matchData.AwayTeamScore ?? updatedAwayTeam?.Score ?? prevMatch.AwayTeamScore,
             MatchStatus: matchData.MatchStatus,
             MatchTime: matchData.MatchTime,
-            // Update scores in Home/Away objects if they exist
+            // Update scores and goals in Home/Away objects if they exist
             Home: prevMatch.Home ? {
               ...prevMatch.Home,
-              Score: matchData.HomeTeam?.Score ?? matchData.Home?.Score ?? prevMatch.Home.Score,
+              Score: updatedHomeTeam?.Score ?? prevMatch.Home.Score,
+              Goals: updatedHomeTeam?.Goals ?? prevMatch.Home.Goals,
+              Players: updatedHomeTeam?.Players ?? prevMatch.Home.Players,
             } : prevMatch.Home,
             Away: prevMatch.Away ? {
               ...prevMatch.Away,
-              Score: matchData.AwayTeam?.Score ?? matchData.Away?.Score ?? prevMatch.Away.Score,
+              Score: updatedAwayTeam?.Score ?? prevMatch.Away.Score,
+              Goals: updatedAwayTeam?.Goals ?? prevMatch.Away.Goals,
+              Players: updatedAwayTeam?.Players ?? prevMatch.Away.Players,
             } : prevMatch.Away,
             HomeTeam: prevMatch.HomeTeam ? {
               ...prevMatch.HomeTeam,
               Score: matchData.HomeTeam?.Score ?? prevMatch.HomeTeam.Score,
+              Goals: matchData.HomeTeam?.Goals ?? prevMatch.HomeTeam.Goals,
+              Players: matchData.HomeTeam?.Players ?? prevMatch.HomeTeam.Players,
             } : prevMatch.HomeTeam,
             AwayTeam: prevMatch.AwayTeam ? {
               ...prevMatch.AwayTeam,
               Score: matchData.AwayTeam?.Score ?? prevMatch.AwayTeam.Score,
+              Goals: matchData.AwayTeam?.Goals ?? prevMatch.AwayTeam.Goals,
+              Players: matchData.AwayTeam?.Players ?? prevMatch.AwayTeam.Players,
             } : prevMatch.AwayTeam,
           };
         });
@@ -487,6 +720,21 @@ export default function MatchDetailsClient({
   const matchDate = formatMatchDate(match.Date, locale);
   const matchTime = formatMatchTime(match.Date, locale);
 
+  // Extract goals and sort by minute
+  const homeGoals = (homeTeam?.Goals || []).slice().sort((a, b) => {
+    const minuteA = parseInt(a.Minute?.replace(/\D/g, '') || '0');
+    const minuteB = parseInt(b.Minute?.replace(/\D/g, '') || '0');
+    return minuteA - minuteB;
+  });
+  const awayGoals = (awayTeam?.Goals || []).slice().sort((a, b) => {
+    const minuteA = parseInt(a.Minute?.replace(/\D/g, '') || '0');
+    const minuteB = parseInt(b.Minute?.replace(/\D/g, '') || '0');
+    return minuteA - minuteB;
+  });
+
+  // Extract all match events for timeline
+  const matchEvents = extractMatchEvents(match, locale === "en" ? "en-GB" : locale);
+
   // Map head-to-head stats to home/away teams
   const homeTeamId = homeTeam?.IdTeam;
   const awayTeamId = awayTeam?.IdTeam;
@@ -529,8 +777,29 @@ export default function MatchDetailsClient({
           <div className="flex items-center justify-between mb-6 px-4">
             {/* Home Team - Name on left, Logo on right */}
             <div className="flex-1 flex items-center gap-3 lg:gap-4 justify-end pr-4 lg:pr-8">
-              <div>
+              <div className="flex flex-col items-end">
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-navy-950">{homeTeamName}</h2>
+                {/* Goal Scorers */}
+                {(isFinished || isLive) && homeGoals.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {homeGoals.map((goal, index) => {
+                      const scorerName = getGoalScorerName(
+                        goal.IdPlayer,
+                        homeTeam?.Players,
+                        locale === "en" ? "en-GB" : locale
+                      );
+                      const goalMinute = formatGoalMinute(goal.Minute, goal.Period);
+                      const goalType = getGoalTypeIndicator(goal.Type);
+                      return (
+                        <div key={goal.IdGoal || index} className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
+                          <span className={goalType.color}>{goalType.icon}</span>
+                          <span className="font-medium">{scorerName}</span>
+                          <span className="text-gray-500">{goalMinute}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
               {homeTeam?.IdTeam && (
                 <img
@@ -586,8 +855,29 @@ export default function MatchDetailsClient({
                   }}
                 />
               )}
-              <div>
+              <div className="flex flex-col items-start">
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-navy-950">{awayTeamName}</h2>
+                {/* Goal Scorers */}
+                {(isFinished || isLive) && awayGoals.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {awayGoals.map((goal, index) => {
+                      const scorerName = getGoalScorerName(
+                        goal.IdPlayer,
+                        awayTeam?.Players,
+                        locale === "en" ? "en-GB" : locale
+                      );
+                      const goalMinute = formatGoalMinute(goal.Minute, goal.Period);
+                      const goalType = getGoalTypeIndicator(goal.Type);
+                      return (
+                        <div key={goal.IdGoal || index} className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
+                          <span className={goalType.color}>{goalType.icon}</span>
+                          <span className="font-medium">{scorerName}</span>
+                          <span className="text-gray-500">{goalMinute}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -631,8 +921,130 @@ export default function MatchDetailsClient({
         {/* Content Section */}
         <div className="mt-8">
           {activeTab === "overview" && (
-            <div className="text-center py-12">
-              <p className="text-gray-600">Overview information will be displayed here</p>
+            <div className="max-w-5xl mx-auto">
+              {/* Timeline Section */}
+              {matchEvents.length > 0 ? (
+                <div className="relative">
+                  {/* Center Vertical Line */}
+                  <div className="absolute left-1/2 transform -translate-x-1/2 w-px bg-gray-200 h-full"></div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Home Team Events (Left Column) */}
+                    <div className="space-y-2 pr-8">
+                      {matchEvents
+                        .filter((event) => event.isHome)
+                        .map((event) => (
+                          <div key={event.id} className="flex items-start gap-3 justify-end">
+                            <div className="flex flex-col items-end text-right">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {event.playerName || event.playerOffName || "Unknown"}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {formatGoalMinute(event.minute, event.period)}
+                                </span>
+                              </div>
+                              {event.type === "substitution" && event.playerOnName && (
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                  ⬆️ {event.playerOnName}
+                                </div>
+                              )}
+                              {event.type === "goal" && event.assistPlayerName && (
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                  Assist: {event.assistPlayerName}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-shrink-0 mt-0.5">
+                              {event.type === "goal" && (
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                                  event.goalType === 1 ? "bg-orange-500" : 
+                                  event.goalType === 2 ? "bg-red-500" : 
+                                  "bg-gray-700"
+                                }`}>
+                                  <span className="text-white text-[10px]">⚽</span>
+                                </div>
+                              )}
+                              {event.type === "yellow-card" && (
+                                <div className="w-2.5 h-3.5 bg-yellow-400 rounded-sm"></div>
+                              )}
+                              {event.type === "red-card" && (
+                                <div className="relative">
+                                  <div className="w-2.5 h-3.5 bg-yellow-400 rounded-sm absolute"></div>
+                                  <div className="w-2.5 h-3.5 bg-red-600 rounded-sm"></div>
+                                </div>
+                              )}
+                              {event.type === "substitution" && (
+                                <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">
+                                  <span className="text-gray-600 text-[10px]">⬇️</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+
+                    {/* Away Team Events (Right Column) */}
+                    <div className="space-y-2 pl-8">
+                      {matchEvents
+                        .filter((event) => !event.isHome)
+                        .map((event) => (
+                          <div key={event.id} className="flex items-start gap-3">
+                            <div className="flex-shrink-0 mt-0.5">
+                              {event.type === "goal" && (
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                                  event.goalType === 1 ? "bg-orange-500" : 
+                                  event.goalType === 2 ? "bg-red-500" : 
+                                  "bg-gray-700"
+                                }`}>
+                                  <span className="text-white text-[10px]">⚽</span>
+                                </div>
+                              )}
+                              {event.type === "yellow-card" && (
+                                <div className="w-2.5 h-3.5 bg-yellow-400 rounded-sm"></div>
+                              )}
+                              {event.type === "red-card" && (
+                                <div className="relative">
+                                  <div className="w-2.5 h-3.5 bg-yellow-400 rounded-sm absolute"></div>
+                                  <div className="w-2.5 h-3.5 bg-red-600 rounded-sm"></div>
+                                </div>
+                              )}
+                              {event.type === "substitution" && (
+                                <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">
+                                  <span className="text-gray-600 text-[10px]">⬇️</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col items-start text-left">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500">
+                                  {formatGoalMinute(event.minute, event.period)}
+                                </span>
+                                <span className="text-sm font-medium text-gray-900">
+                                  {event.playerName || event.playerOffName || "Unknown"}
+                                </span>
+                              </div>
+                              {event.type === "substitution" && event.playerOnName && (
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                  ⬆️ {event.playerOnName}
+                                </div>
+                              )}
+                              {event.type === "goal" && event.assistPlayerName && (
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                  Assist: {event.assistPlayerName}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">No match events available</p>
+                </div>
+              )}
             </div>
           )}
 
