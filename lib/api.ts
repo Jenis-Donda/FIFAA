@@ -724,7 +724,7 @@ export function transformStandings(data: StandingsAPIResponse | null): Standing[
       lost: entry.Lost,
       goalsFor: entry.For,
       goalsAgainst: entry.Against,
-      goalDiff: entry.GoalsDifference ?? entry.GoalsDiference ?? 0,
+      goalDiff: entry.GoalsDifference ?? 0,
       points: entry.Points,
     };
   });
@@ -794,6 +794,42 @@ export async function fetchMatchDetails(
     return data.Results?.[0] || data || null;
   } catch (error) {
     console.error("Error fetching match details:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetch head-to-head statistics and historical matches between two teams
+ * API: /api/v3/statistics/headtohead/{teamId1}/{teamId2}
+ */
+export async function fetchHeadToHead(
+  teamId1: string,
+  teamId2: string,
+  language: string = "en",
+  count: number = 10,
+  toDate?: string
+): Promise<import("./types").HeadToHeadAPIResponse | null> {
+  try {
+    const FIFA_STATISTICS_API = "https://api.fifa.com/api/v3/statistics";
+    let url = `${FIFA_STATISTICS_API}/headtohead/${teamId1}/${teamId2}?language=${language}&count=${count}`;
+    // Add 'to' parameter if provided (used to limit matches up to a specific date)
+    if (toDate) {
+      url += `&to=${encodeURIComponent(toDate)}`;
+    }
+
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: FIFA_API_HEADERS,
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch head-to-head: ${response.status}`);
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching head-to-head:", error);
     return null;
   }
 }
