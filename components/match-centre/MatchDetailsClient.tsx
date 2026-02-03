@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { fetchMatchDetails, fetchHeadToHead, fetchStandingsData } from "@/lib/api";
 import type { MatchAPIItem, HeadToHeadAPIResponse, Player, PlayerName, Standing } from "@/lib/types";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -253,6 +254,7 @@ export default function MatchDetailsClient({
   const [isLoadingStandings, setIsLoadingStandings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "lineup" | "stats" | "table" | "related">("stats");
+  const router = useRouter();
 
   useEffect(() => {
     const loadMatchDetails = async () => {
@@ -1088,8 +1090,19 @@ export default function MatchDetailsClient({
                       const homeWon = historicalIsFinished && historicalHomeScore > historicalAwayScore;
                       const awayWon = historicalIsFinished && historicalAwayScore > historicalHomeScore;
                       
+                      // Handle click to navigate to match details
+                      const handleMatchClick = () => {
+                        if (historicalMatch.IdCompetition && historicalMatch.IdSeason && historicalMatch.IdStage && historicalMatch.IdMatch) {
+                          router.push(`/${locale}/match-centre/match/${historicalMatch.IdCompetition}/${historicalMatch.IdSeason}/${historicalMatch.IdStage}/${historicalMatch.IdMatch}`);
+                        }
+                      };
+                      
                       return (
-                        <div key={historicalMatch.IdMatch} className="bg-white border border-gray-200 rounded-lg p-4 sm:p-5 hover:bg-gray-50 transition-colors cursor-pointer">
+                        <div 
+                          key={historicalMatch.IdMatch} 
+                          onClick={handleMatchClick}
+                          className="bg-white border border-gray-200 rounded-lg p-4 sm:p-5 hover:bg-gray-50 transition-colors cursor-pointer"
+                        >
                           {/* Use same layout structure as Head to Head for perfect alignment */}
                           <div className="flex items-center justify-center gap-6 sm:gap-8 lg:gap-12">
                             {/* Left: Venue and Date Info */}
