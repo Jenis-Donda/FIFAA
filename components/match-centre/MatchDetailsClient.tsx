@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { fetchMatchDetails, fetchHeadToHead } from "@/lib/api";
-import type { MatchAPIItem, HeadToHeadAPIResponse, Player, PlayerName } from "@/lib/types";
+import { fetchMatchDetails, fetchHeadToHead, fetchStandingsData } from "@/lib/api";
+import type { MatchAPIItem, HeadToHeadAPIResponse, Player, PlayerName, Standing } from "@/lib/types";
 import type { Dictionary } from "@/i18n/dictionaries";
 
 type MatchDetailsClientProps = {
@@ -247,8 +247,10 @@ export default function MatchDetailsClient({
 }: MatchDetailsClientProps) {
   const [match, setMatch] = useState<MatchAPIItem | null>(null);
   const [headToHeadData, setHeadToHeadData] = useState<HeadToHeadAPIResponse | null>(null);
+  const [standings, setStandings] = useState<Standing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingHeadToHead, setIsLoadingHeadToHead] = useState(false);
+  const [isLoadingStandings, setIsLoadingStandings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "lineup" | "stats" | "table" | "related">("stats");
 
@@ -316,6 +318,33 @@ export default function MatchDetailsClient({
 
     loadHeadToHead();
   }, [match?.HomeTeam?.IdTeam, match?.Home?.IdTeam, match?.AwayTeam?.IdTeam, match?.Away?.IdTeam, match?.Date, locale]);
+
+  // Fetch standings when match is loaded
+  useEffect(() => {
+    const loadStandings = async () => {
+      if (!match?.IdCompetition || !match?.IdSeason || !match?.IdStage) return;
+
+      setIsLoadingStandings(true);
+      try {
+        const standingsData = await fetchStandingsData(
+          match.IdCompetition,
+          match.IdSeason,
+          match.IdStage,
+          locale === "en" ? "en" : locale
+        );
+        
+        if (standingsData) {
+          setStandings(standingsData);
+        }
+      } catch (err) {
+        console.error("Error loading standings:", err);
+      } finally {
+        setIsLoadingStandings(false);
+      }
+    };
+
+    loadStandings();
+  }, [match?.IdCompetition, match?.IdSeason, match?.IdStage, locale]);
 
   if (isLoading) {
     return (
@@ -1114,8 +1143,180 @@ export default function MatchDetailsClient({
           )}
 
           {activeTab === "table" && (
-            <div className="text-center py-12">
-              <p className="text-gray-600">League table will be displayed here</p>
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              {isLoadingStandings ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fifa-header mx-auto mb-2"></div>
+                  <p className="text-gray-600 text-sm">Loading league table...</p>
+                </div>
+              ) : standings.length > 0 ? (
+                <>
+                  {/* Table */}
+                  <div className="overflow-auto bg-gray-50">
+                    <table className="w-full">
+                      <thead className="bg-gray-100 border-b border-gray-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Rank</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">TEAM</th>
+                          <th className="px-3 py-3 text-center text-sm font-semibold text-gray-700">P</th>
+                          <th className="px-3 py-3 text-center text-sm font-semibold text-gray-700">W</th>
+                          <th className="px-3 py-3 text-center text-sm font-semibold text-gray-700">D</th>
+                          <th className="px-3 py-3 text-center text-sm font-semibold text-gray-700">L</th>
+                          <th className="px-3 py-3 text-center text-sm font-semibold text-gray-700">GF</th>
+                          <th className="px-3 py-3 text-center text-sm font-semibold text-gray-700">GA</th>
+                          <th className="px-3 py-3 text-center text-sm font-semibold text-gray-700">GD</th>
+                          <th className="px-3 py-3 text-center text-sm font-semibold text-gray-700">PTS</th>
+                          <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">FORM</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white">
+                        {standings.map((row, index) => {
+                          // Use real form data from API, fallback to empty form if not available
+                          const formResults = row.form || ["-", "-", "-", "-", "-"];
+                          
+                          // Check if this team is playing in the current match
+                          const homeTeamId = homeTeam?.IdTeam;
+                          const awayTeamId = awayTeam?.IdTeam;
+                          const isPlayingInCurrentMatch = isLive && (
+                            row.teamId === homeTeamId || row.teamId === awayTeamId
+                          );
+                          
+                          return (
+                            <tr
+                              key={row.position}
+                              className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                                isPlayingInCurrentMatch
+                                  ? "bg-blue-100 border-l-4 border-l-blue-600"
+                                  : index % 2 === 0
+                                  ? "bg-white"
+                                  : "bg-gray-50/50"
+                              }`}
+                            >
+                              {/* Position */}
+                              <td className="px-4 py-3">
+                                <span className="font-semibold text-gray-900">{row.position}</span>
+                              </td>
+
+                              {/* Team */}
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  {row.teamLogo ? (
+                                    <img
+                                      src={row.teamLogo}
+                                      alt={row.team}
+                                      className="w-6 h-6 object-contain flex-shrink-0"
+                                      onError={(e) => {
+                                        const target = e.currentTarget as HTMLImageElement | null;
+                                        if (target) target.src = "/images/fallback.png";
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-500 flex-shrink-0">
+                                      {row.teamAbbr.substring(0, 2)}
+                                    </div>
+                                  )}
+                                  <span className="font-medium text-gray-900">{row.team}</span>
+                                </div>
+                              </td>
+
+                              {/* Stats */}
+                              <td className="px-3 py-3 text-center text-gray-700">{row.played}</td>
+                              <td className="px-3 py-3 text-center text-gray-700">{row.won}</td>
+                              <td className="px-3 py-3 text-center text-gray-700">{row.drawn}</td>
+                              <td className="px-3 py-3 text-center text-gray-700">{row.lost}</td>
+                              <td className="px-3 py-3 text-center text-gray-700">{row.goalsFor}</td>
+                              <td className="px-3 py-3 text-center text-gray-700">{row.goalsAgainst}</td>
+                              <td className={`px-3 py-3 text-center font-medium ${
+                                row.goalDiff > 0 ? "text-green-600" : row.goalDiff < 0 ? "text-red-600" : "text-gray-700"
+                              }`}>
+                                {row.goalDiff > 0 ? `+${row.goalDiff}` : row.goalDiff}
+                              </td>
+                              <td className="px-3 py-3 text-center font-bold text-gray-900">{row.points}</td>
+
+                              {/* Form */}
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-center gap-1">
+                                  {[...formResults].reverse().map((result, i) => (
+                                    <div
+                                      key={i}
+                                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white ${
+                                        result === "W"
+                                          ? "bg-green-500"
+                                          : result === "D"
+                                          ? "bg-gray-400"
+                                          : result === "L"
+                                          ? "bg-red-500"
+                                          : "bg-white border-2 border-gray-300"
+                                      }`}
+                                    >
+                                      {result === "-" ? "" : result}
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Legend Section Below Table */}
+                  <div className="px-6 py-4 bg-white border-t border-gray-200">
+                    <div className="space-y-4">
+                      {/* LAST 5 MATCHES Legend */}
+                      <div className="flex items-center gap-6 text-sm">
+                        <span className="font-semibold text-gray-900">LAST 5 MATCHES</span>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                              <span className="text-white text-[10px] font-bold">W</span>
+                            </div>
+                            <span className="text-gray-700">Win</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center">
+                              <span className="text-white text-[10px] font-bold">D</span>
+                            </div>
+                            <span className="text-gray-700">Draw</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
+                              <span className="text-white text-[10px] font-bold">L</span>
+                            </div>
+                            <span className="text-gray-700">Lose</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
+                              <span className="text-gray-400 text-[10px] font-bold">-</span>
+                            </div>
+                            <span className="text-gray-700">Not played</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* KEY Section */}
+                      <div className="flex items-center gap-6 text-sm">
+                        <span className="font-semibold text-gray-900">KEY</span>
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <span className="text-gray-700"><span className="font-semibold">P</span> = Matches Played</span>
+                          <span className="text-gray-700"><span className="font-semibold">W</span> = Wins</span>
+                          <span className="text-gray-700"><span className="font-semibold">D</span> = Draws</span>
+                          <span className="text-gray-700"><span className="font-semibold">L</span> = Loss</span>
+                          <span className="text-gray-700"><span className="font-semibold">GF</span> = Goals For</span>
+                          <span className="text-gray-700"><span className="font-semibold">GA</span> = Goals Against</span>
+                          <span className="text-gray-700"><span className="font-semibold">GD</span> = Goal Difference</span>
+                          <span className="text-gray-700"><span className="font-semibold">Pts</span> = Points</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">League table not available</p>
+                </div>
+              )}
             </div>
           )}
 
