@@ -805,7 +805,7 @@ export default function MatchDetailsClient({
                 <img
                   src={formatTeamLogo(homeTeam.IdTeam)}
                   alt={homeTeamName}
-                  className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 object-contain flex-shrink-0"
+                  className="w-8 h-8 sm:w-14 sm:h-14 md:w-18 md:h-18 lg:w-22 lg:h-22 object-contain flex-shrink-0"
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement | null;
                     if (target) target.src = "/images/fallback.png";
@@ -848,7 +848,7 @@ export default function MatchDetailsClient({
                 <img
                   src={formatTeamLogo(awayTeam.IdTeam)}
                   alt={awayTeamName}
-                  className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 object-contain flex-shrink-0"
+                  className="w-8 h-8 sm:w-14 sm:h-14 md:w-18 md:h-18 lg:w-22 lg:h-22 object-contain flex-shrink-0"
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement | null;
                     if (target) target.src = "/images/fallback.png";
@@ -1471,7 +1471,7 @@ export default function MatchDetailsClient({
                           <img
                             src={formatTeamLogo(homeTeamId)}
                             alt={homeTeamName}
-                            className="w-14 h-14 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain"
+                            className="w-10 h-10 sm:w-14 sm:h-14 lg:w-16 lg:h-16 object-contain"
                             onError={(e) => {
                               const target = e.currentTarget as HTMLImageElement | null;
                               if (target) target.src = "/images/fallback.png";
@@ -1498,7 +1498,7 @@ export default function MatchDetailsClient({
                           <img
                             src={formatTeamLogo(awayTeamId)}
                             alt={awayTeamName}
-                            className="w-14 h-14 sm:w-16 sm:h-16 lg:w-18 lg:h-18 object-contain"
+                            className="w-10 h-10 sm:w-14 sm:h-14 lg:w-16 lg:h-16 object-contain"
                             onError={(e) => {
                               const target = e.currentTarget as HTMLImageElement | null;
                               if (target) target.src = "/images/fallback.png";
