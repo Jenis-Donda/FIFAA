@@ -902,3 +902,79 @@ export async function fetchHeadToHead(
   }
 }
 
+/**
+ * Fetch World Cup 2026 matches
+ */
+export async function fetchWorldCupMatches(
+  language: string = "en",
+  count: number = 500
+): Promise<MatchesAPIResponse | null> {
+  try {
+    const response = await fetch(
+      `${FIFA_CALENDAR_API}/matches?language=${language}&count=${count}&idSeason=285023`,
+      {
+        next: { revalidate: 300 }, // Cache for 5 minutes
+        headers: FIFA_API_HEADERS,
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to fetch World Cup matches: ${response.status}`);
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching World Cup matches:", error);
+    return null;
+  }
+}
+
+export async function fetchWorldCupHostCountries(
+  language: string = "en"
+): Promise<any> {
+  console.log('Fetching host countries...');
+  try {
+    console.log('Fetching host countries...');
+    const response = await fetch(
+      `https://cxm-api.fifa.com/fifaplusweb/api/sections/teamsModule/5XwqLVjelDeqteyJh06Hrm?locale=en&limit=200`
+    );
+    
+    console.log('Host countries API status:', response.status);
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch host countries: ${response.status}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    console.log('Host countries API data:', data);
+    return data;
+  } catch (error) {
+    console.error("Error fetching host countries:", error);
+    return null;
+  }
+}
+
+export async function fetchWorldCupStandings(locale: string = "en") {
+  const url = `https://api.fifa.com/api/v3/calendar/17/285023/289273/standing?language=${locale}&count=200`;
+  
+  try {
+    const response = await fetch(url, { 
+      cache: 'no-store',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch standings: ${response.status}`);
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching World Cup standings:', error);
+    return null;
+  }
+}
+
