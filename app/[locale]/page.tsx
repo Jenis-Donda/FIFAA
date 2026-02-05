@@ -17,7 +17,7 @@ type PageProps = {
 export default async function HomePage({ params }: PageProps) {
   const locale: Locale = isValidLocale(params.locale) ? params.locale : "en";
   const dict = getDictionary(locale);
-  
+
   // Fetch data from FIFA API
   const [heroSlides, topStories, rankings, insideFIFA, upcomingTournaments] = await Promise.all([
     fetchHeroSlides(locale),
@@ -50,12 +50,12 @@ export default async function HomePage({ params }: PageProps) {
         <main>
           <HeroCarousel slides={heroSlides} />
           <StoryGrid stories={topStories} dict={dict} />
-          <Rankings 
-            men={rankings.men} 
-            women={rankings.women} 
+          <Rankings
+            men={rankings.men}
+            women={rankings.women}
             mensLastUpdate={rankings.mensLastUpdate}
             womensLastUpdate={rankings.womensLastUpdate}
-            dict={dict} 
+            dict={dict}
           />
           <InsideFIFA data={insideFIFA} />
           <UpcomingTournaments data={upcomingTournaments} />

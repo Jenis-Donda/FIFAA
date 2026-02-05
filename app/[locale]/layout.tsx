@@ -27,7 +27,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const locale = isValidLocale(params.locale) ? params.locale : "en";
   const dict = getDictionary(locale);
-  
+
   return {
     metadataBase: new URL("https://example.com"),
     title: "FIFA | The Home of Football",
