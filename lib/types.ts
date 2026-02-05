@@ -44,6 +44,11 @@ export interface FIFAPageSection {
   entryEndpoint: string;
   heroSection?: HeroSection;
   news?: { layout: number };
+  sectionPromoCarousel?: {
+    size: number;
+    carouselType: number;
+  };
+  heroBanner?: unknown;
 }
 
 export interface FIFAPageResponse {
