@@ -978,3 +978,51 @@ export async function fetchWorldCupStandings(locale: string = "en") {
   }
 }
 
+/**
+ * Fetch World Cup 2026 teams data
+ */
+export async function fetchWorldCupTeams(
+  language: string = "en"
+): Promise<any> {
+  try {
+    const response = await fetch(
+      `https://cxm-api.fifa.com/fifaplusweb/api/sections/teamsModule/4v5Yng3VdGD9c1cpnOIff1?locale=${language}&limit=200`,
+      {
+        next: { revalidate: 300 },
+        headers: FIFA_API_HEADERS,
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to fetch teams: ${response.status}`);
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching teams:", error);
+    return null;
+  }
+}
+
+export async function fetchPromoCarousel(locale: string = "en"): Promise<any> {
+  try {
+    const response = await fetch(
+      `https://cxm-api.fifa.com/fifaplusweb/api/sections/promoCarousel/4I2aLjy34r0KI0s4PYpCWk?locale=${locale}`,
+      {
+        next: { revalidate: 300 },
+        headers: FIFA_API_HEADERS,
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to fetch promo carousel: ${response.status}`);
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching promo carousel:", error);
+    return null;
+  }
+}

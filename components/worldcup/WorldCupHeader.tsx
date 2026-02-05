@@ -37,12 +37,13 @@ export default function WorldCupHeader({ locale, dict }: Props) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const navItems = [
-        { label: "SCORES & FIXTURES", href: `/${locale}/match-centre` },
-        { label: "STANDINGS", href: `/${locale}/standings` },
-        { label: "TEAMS", href: `/${locale}/teams` },
-        { label: "QUALIFIERS", href: `/${locale}/qualifiers` },
-        { label: "HOST COUNTRIES AND CITIES", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026` },
-        { label: dict.nav.watchOnFifa, href: `/${locale}/watch` },
+        { label: "SCORES & FIXTURES", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026/scores-fixtures` },
+        {
+            label: "STANDINGS",
+            href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026/standings`
+        },
+        { label: "TEAMS", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026/teams` },
+        { label: "HOST COUNTRIES AND CITIES", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026/host-cities` },
     ];
 
     return (
@@ -50,7 +51,7 @@ export default function WorldCupHeader({ locale, dict }: Props) {
             {/* Top thin black utility bar */}
             <div className="bg-black text-white h-9 flex items-center justify-between w-full">
                 <div className="pl-4">
-                    <Link href={`/${locale}`} className="flex items-center h-full [&_svg]:h-5 [&_svg]:w-auto">
+                    <Link href={`/${locale}/tournaments/mens/worldcup/canadamexicousa2026`} className="flex items-center h-full [&_svg]:h-5 [&_svg]:w-auto">
                         <svg width="100" height="20" viewBox="0 0 90 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <text x="0" y="14" fill="white" fontFamily="Arial Black, sans-serif" fontSize="14" fontWeight="900" letterSpacing="0.5">FIFAA</text>
                         </svg>
@@ -84,7 +85,7 @@ export default function WorldCupHeader({ locale, dict }: Props) {
                             <HamburgerIcon />
                         </button>
 
-                        <Link href={`/${locale}`} className="flex items-center h-full [&_svg]:h-9 [&_svg]:w-auto transition-opacity duration-200 hover:opacity-90" aria-label="FIFA Home">
+                        <Link href={`/${locale}/tournaments/mens/worldcup/canadamexicousa2026`} className="flex items-center h-full [&_svg]:h-9 [&_svg]:w-auto transition-opacity duration-200 hover:opacity-90" aria-label="FIFA Home">
                             <FIFALogo />
                         </Link>
                     </div>
