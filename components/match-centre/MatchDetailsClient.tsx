@@ -185,7 +185,7 @@ function extractMatchEvents(
       const assistName = goal.IdAssistPlayer
         ? getGoalScorerName(goal.IdAssistPlayer, homeTeam.Players, locale)
         : undefined;
-      
+
       events.push({
         id: goal.IdGoal || `goal-${goal.IdPlayer}-${goal.Minute}`,
         type: "goal",
@@ -208,7 +208,7 @@ function extractMatchEvents(
       const assistName = goal.IdAssistPlayer
         ? getGoalScorerName(goal.IdAssistPlayer, awayTeam.Players, locale)
         : undefined;
-      
+
       events.push({
         id: goal.IdGoal || `goal-${goal.IdPlayer}-${goal.Minute}`,
         type: "goal",
@@ -230,7 +230,7 @@ function extractMatchEvents(
     homeTeam.Bookings.forEach((booking) => {
       const playerName = getGoalScorerName(booking.IdPlayer, homeTeam.Players, locale);
       const eventType: MatchEventType = booking.Card === 2 || booking.Card === 3 ? "red-card" : "yellow-card";
-      
+
       events.push({
         id: booking.IdEvent || `booking-${booking.IdPlayer}-${booking.Minute}`,
         type: eventType,
@@ -249,7 +249,7 @@ function extractMatchEvents(
     awayTeam.Bookings.forEach((booking) => {
       const playerName = getGoalScorerName(booking.IdPlayer, awayTeam.Players, locale);
       const eventType: MatchEventType = booking.Card === 2 || booking.Card === 3 ? "red-card" : "yellow-card";
-      
+
       events.push({
         id: booking.IdEvent || `booking-${booking.IdPlayer}-${booking.Minute}`,
         type: eventType,
@@ -269,7 +269,7 @@ function extractMatchEvents(
     homeTeam.Substitutions.forEach((sub) => {
       const playerOffName = getPlayerName(sub.PlayerOffName, locale);
       const playerOnName = getPlayerName(sub.PlayerOnName, locale);
-      
+
       events.push({
         id: sub.IdEvent || `sub-${sub.IdPlayerOff}-${sub.Minute}`,
         type: "substitution",
@@ -289,7 +289,7 @@ function extractMatchEvents(
     awayTeam.Substitutions.forEach((sub) => {
       const playerOffName = getPlayerName(sub.PlayerOffName, locale);
       const playerOnName = getPlayerName(sub.PlayerOnName, locale);
-      
+
       events.push({
         id: sub.IdEvent || `sub-${sub.IdPlayerOff}-${sub.Minute}`,
         type: "substitution",
@@ -471,9 +471,14 @@ export default function MatchDetailsClient({
   const [match, setMatch] = useState<MatchAPIItem | null>(null);
   const [headToHeadData, setHeadToHeadData] = useState<HeadToHeadAPIResponse | null>(null);
   const [standings, setStandings] = useState<Standing[]>([]);
+  const [relatedMatches, setRelatedMatches] = useState<MatchAPIItem[]>([]);
+  const [nextMatchesHome, setNextMatchesHome] = useState<MatchAPIItem[]>([]);
+  const [nextMatchesAway, setNextMatchesAway] = useState<MatchAPIItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingHeadToHead, setIsLoadingHeadToHead] = useState(false);
   const [isLoadingStandings, setIsLoadingStandings] = useState(false);
+  const [isLoadingRelatedMatches, setIsLoadingRelatedMatches] = useState(false);
+  const [isLoadingNextMatches, setIsLoadingNextMatches] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "lineup" | "stats" | "table" | "related">("overview");
   const router = useRouter();
@@ -536,7 +541,7 @@ export default function MatchDetailsClient({
           if (!prevMatch) return prevMatch;
           const updatedHomeTeam = matchData.HomeTeam || matchData.Home;
           const updatedAwayTeam = matchData.AwayTeam || matchData.Away;
-          
+
           return {
             ...prevMatch,
             HomeTeamScore: matchData.HomeTeamScore ?? updatedHomeTeam?.Score ?? prevMatch.HomeTeamScore,
@@ -591,7 +596,7 @@ export default function MatchDetailsClient({
       // Support both Home/Away (calendar API) and HomeTeam/AwayTeam (live API)
       const homeTeamId = match?.HomeTeam?.IdTeam || match?.Home?.IdTeam;
       const awayTeamId = match?.AwayTeam?.IdTeam || match?.Away?.IdTeam;
-      
+
       if (!homeTeamId || !awayTeamId) return;
 
       setIsLoadingHeadToHead(true);
@@ -604,7 +609,7 @@ export default function MatchDetailsClient({
           locale === "en" ? "en" : locale,
           5 // count - match FIFA's default
         );
-        
+
         if (h2hData) {
           setHeadToHeadData(h2hData);
         }
@@ -631,7 +636,7 @@ export default function MatchDetailsClient({
           match.IdStage,
           locale === "en" ? "en" : locale
         );
-        
+
         if (standingsData) {
           setStandings(standingsData);
         }
@@ -644,6 +649,117 @@ export default function MatchDetailsClient({
 
     loadStandings();
   }, [match?.IdCompetition, match?.IdSeason, match?.IdStage, locale]);
+
+  // Fetch related matches when match is loaded
+  useEffect(() => {
+    const loadRelatedMatches = async () => {
+      if (!match?.IdCompetition || !match?.IdSeason || !match?.IdStage || !match?.IdMatch) return;
+
+      setIsLoadingRelatedMatches(true);
+      try {
+        const response = await fetch(
+          `https://api.fifa.com/api/v3/calendar/matches?language=${locale === "en" ? "en" : locale}&idCompetition=${match.IdCompetition}&idSeason=${match.IdSeason}&idStage=${match.IdStage}&idMatch=${match.IdMatch}&count=400`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.Results && Array.isArray(data.Results)) {
+            // Get current date/time in browser's local timezone
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            // Filter out the current match and get only future matches (from today onwards)
+            const futureMatches = data.Results.filter(
+              (m: MatchAPIItem) => {
+                if (m.IdMatch === match.IdMatch) return false;
+                const matchDate = new Date(m.Date);
+                return matchDate >= today;
+              }
+            );
+
+            // Sort by date (earliest first)
+            futureMatches.sort((a: MatchAPIItem, b: MatchAPIItem) => {
+              return new Date(a.Date).getTime() - new Date(b.Date).getTime();
+            });
+
+            // Get unique dates and take all matches for first 3 unique days
+            const uniqueDates = new Set<string>();
+            const matchesForNext3Days: MatchAPIItem[] = [];
+
+            for (const match of futureMatches) {
+              const matchDate = new Date(match.Date);
+              const dateKey = `${matchDate.getFullYear()}-${matchDate.getMonth()}-${matchDate.getDate()}`;
+
+              if (uniqueDates.size < 3) {
+                uniqueDates.add(dateKey);
+                matchesForNext3Days.push(match);
+              } else if (uniqueDates.has(dateKey)) {
+                // If we already have this date in our set, include this match too
+                matchesForNext3Days.push(match);
+              } else {
+                // We've reached 3 unique days and this is a new day, stop
+                break;
+              }
+            }
+
+            setRelatedMatches(matchesForNext3Days);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading related matches:", err);
+      } finally {
+        setIsLoadingRelatedMatches(false);
+      }
+    };
+
+    loadRelatedMatches();
+  }, [match?.IdCompetition, match?.IdSeason, match?.IdStage, match?.IdMatch, locale]);
+
+  // Fetch next matches for both teams
+  useEffect(() => {
+    const loadNextMatches = async () => {
+      if (!match?.IdCompetition || !match?.IdSeason || !match?.IdStage) return;
+
+      // Get team IDs from match object
+      const homeTeamId = match.HomeTeam?.IdTeam || match.Home?.IdTeam;
+      const awayTeamId = match.AwayTeam?.IdTeam || match.Away?.IdTeam;
+
+      if (!homeTeamId || !awayTeamId) return;
+
+      setIsLoadingNextMatches(true);
+      try {
+        // Fetch next matches for home team
+        const homeResponse = await fetch(
+          `https://api.fifa.com/api/v3/calendar/nextmatches?language=${locale === "en" ? "en" : locale}&numberOfNextMatches=3&numberOfPreviousMatches=0&idTeam=${homeTeamId}&idCompetition=${match.IdCompetition}&idSeason=${match.IdSeason}&idStage=${match.IdStage}`
+        );
+
+        // Fetch next matches for away team
+        const awayResponse = await fetch(
+          `https://api.fifa.com/api/v3/calendar/nextmatches?language=${locale === "en" ? "en" : locale}&numberOfNextMatches=3&numberOfPreviousMatches=0&idTeam=${awayTeamId}&idCompetition=${match.IdCompetition}&idSeason=${match.IdSeason}&idStage=${match.IdStage}`
+        );
+
+        if (homeResponse.ok) {
+          const homeData = await homeResponse.json();
+          if (homeData?.Results && Array.isArray(homeData.Results)) {
+            setNextMatchesHome(homeData.Results);
+          }
+        }
+
+        if (awayResponse.ok) {
+          const awayData = await awayResponse.json();
+          if (awayData?.Results && Array.isArray(awayData.Results)) {
+            setNextMatchesAway(awayData.Results);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading next matches:", err);
+      } finally {
+        setIsLoadingNextMatches(false);
+      }
+    };
+
+    loadNextMatches();
+  }, [match?.IdCompetition, match?.IdSeason, match?.IdStage, match?.HomeTeam?.IdTeam, match?.Home?.IdTeam, match?.AwayTeam?.IdTeam, match?.Away?.IdTeam, locale]);
 
   if (isLoading) {
     return (
@@ -906,11 +1022,10 @@ export default function MatchDetailsClient({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`pb-3 sm:pb-4 px-1 sm:px-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
-                  activeTab === tab.id
-                    ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
+                className={`pb-3 sm:pb-4 px-1 sm:px-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${activeTab === tab.id
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-600 hover:text-gray-900"
+                  }`}
               >
                 {tab.label}
               </button>
@@ -927,18 +1042,17 @@ export default function MatchDetailsClient({
                 <div className="relative">
                   {/* Center Vertical Line - hidden on mobile */}
                   <div className="hidden sm:block absolute left-1/2 transform -translate-x-1/2 w-px bg-gray-200 h-full"></div>
-                  
+
                   {/* Mobile: Single column list */}
                   <div className="sm:hidden space-y-3">
                     {matchEvents.map((event) => (
                       <div key={event.id} className={`flex items-start gap-3 p-3 rounded-lg ${event.isHome ? 'bg-blue-50' : 'bg-gray-50'}`}>
                         <div className="flex-shrink-0 mt-0.5">
                           {event.type === "goal" && (
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                              event.goalType === 1 ? "bg-orange-500" : 
-                              event.goalType === 2 ? "bg-red-500" : 
-                              "bg-gray-700"
-                            }`}>
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${event.goalType === 1 ? "bg-orange-500" :
+                              event.goalType === 2 ? "bg-red-500" :
+                                "bg-gray-700"
+                              }`}>
                               <span className="text-white text-xs">⚽</span>
                             </div>
                           )}
@@ -980,7 +1094,7 @@ export default function MatchDetailsClient({
                       </div>
                     ))}
                   </div>
-                  
+
                   {/* Desktop: Two column layout */}
                   <div className="hidden sm:grid grid-cols-2 gap-4">
                     {/* Home Team Events (Left Column) */}
@@ -1011,11 +1125,10 @@ export default function MatchDetailsClient({
                             </div>
                             <div className="flex-shrink-0 mt-0.5">
                               {event.type === "goal" && (
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                                  event.goalType === 1 ? "bg-orange-500" : 
-                                  event.goalType === 2 ? "bg-red-500" : 
-                                  "bg-gray-700"
-                                }`}>
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${event.goalType === 1 ? "bg-orange-500" :
+                                  event.goalType === 2 ? "bg-red-500" :
+                                    "bg-gray-700"
+                                  }`}>
                                   <span className="text-white text-[10px]">⚽</span>
                                 </div>
                               )}
@@ -1046,11 +1159,10 @@ export default function MatchDetailsClient({
                           <div key={event.id} className="flex items-start gap-3">
                             <div className="flex-shrink-0 mt-0.5">
                               {event.type === "goal" && (
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                                  event.goalType === 1 ? "bg-orange-500" : 
-                                  event.goalType === 2 ? "bg-red-500" : 
-                                  "bg-gray-700"
-                                }`}>
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${event.goalType === 1 ? "bg-orange-500" :
+                                  event.goalType === 2 ? "bg-red-500" :
+                                    "bg-gray-700"
+                                  }`}>
                                   <span className="text-white text-[10px]">⚽</span>
                                 </div>
                               )}
@@ -1138,7 +1250,7 @@ export default function MatchDetailsClient({
                         return (
                           <div className="space-y-4">
                             <div className="text-xs font-semibold text-gray-600 mb-2">Starting Line Up</div>
-                            
+
                             {/* Goalkeeper */}
                             {grouped.starters.goalkeepers.length > 0 && (
                               <div>
@@ -1147,9 +1259,9 @@ export default function MatchDetailsClient({
                                 </h4>
                                 <div className="space-y-1.5">
                                   {grouped.starters.goalkeepers.map((player) => (
-                                    <PlayerCard 
-                                      key={player.IdPlayer} 
-                                      player={player} 
+                                    <PlayerCard
+                                      key={player.IdPlayer}
+                                      player={player}
                                       locale={locale}
                                       teamBookings={homeTeam?.Bookings}
                                     />
@@ -1166,9 +1278,9 @@ export default function MatchDetailsClient({
                                 </h4>
                                 <div className="space-y-1.5">
                                   {grouped.starters.defenders.map((player) => (
-                                    <PlayerCard 
-                                      key={player.IdPlayer} 
-                                      player={player} 
+                                    <PlayerCard
+                                      key={player.IdPlayer}
+                                      player={player}
                                       locale={locale}
                                       teamBookings={homeTeam?.Bookings}
                                     />
@@ -1185,9 +1297,9 @@ export default function MatchDetailsClient({
                                 </h4>
                                 <div className="space-y-1.5">
                                   {grouped.starters.midfielders.map((player) => (
-                                    <PlayerCard 
-                                      key={player.IdPlayer} 
-                                      player={player} 
+                                    <PlayerCard
+                                      key={player.IdPlayer}
+                                      player={player}
                                       locale={locale}
                                       teamBookings={homeTeam?.Bookings}
                                     />
@@ -1204,9 +1316,9 @@ export default function MatchDetailsClient({
                                 </h4>
                                 <div className="space-y-1.5">
                                   {grouped.starters.attackers.map((player) => (
-                                    <PlayerCard 
-                                      key={player.IdPlayer} 
-                                      player={player} 
+                                    <PlayerCard
+                                      key={player.IdPlayer}
+                                      player={player}
                                       locale={locale}
                                       teamBookings={homeTeam?.Bookings}
                                     />
@@ -1223,9 +1335,9 @@ export default function MatchDetailsClient({
                                 </h4>
                                 <div className="space-y-1.5">
                                   {grouped.substitutes.map((player) => (
-                                    <PlayerCard 
-                                      key={player.IdPlayer} 
-                                      player={player} 
+                                    <PlayerCard
+                                      key={player.IdPlayer}
+                                      player={player}
                                       locale={locale}
                                       teamBookings={homeTeam?.Bookings}
                                     />
@@ -1249,12 +1361,12 @@ export default function MatchDetailsClient({
                       {(() => {
                         const headCoach = homeTeam.Coaches.find((coach) => coach.Role === 0);
                         if (!headCoach) return null;
-                        
+
                         const coachName = getPlayerName(headCoach.Name, locale === "en" ? "en-GB" : locale);
                         const coachAlias = headCoach.Alias && headCoach.Alias.length > 0
                           ? getPlayerName(headCoach.Alias, locale === "en" ? "en-GB" : locale)
                           : coachName;
-                        
+
                         return (
                           <div className="mt-6">
                             <h4 className="text-xs font-semibold text-gray-700 mb-2">Manager</h4>
@@ -1310,7 +1422,7 @@ export default function MatchDetailsClient({
                         return (
                           <div className="space-y-4">
                             <div className="text-xs font-semibold text-gray-600 mb-2">Starting Line Up</div>
-                            
+
                             {/* Goalkeeper */}
                             {grouped.starters.goalkeepers.length > 0 && (
                               <div>
@@ -1319,9 +1431,9 @@ export default function MatchDetailsClient({
                                 </h4>
                                 <div className="space-y-1.5">
                                   {grouped.starters.goalkeepers.map((player) => (
-                                    <PlayerCard 
-                                      key={player.IdPlayer} 
-                                      player={player} 
+                                    <PlayerCard
+                                      key={player.IdPlayer}
+                                      player={player}
                                       locale={locale}
                                       teamBookings={awayTeam?.Bookings}
                                     />
@@ -1338,9 +1450,9 @@ export default function MatchDetailsClient({
                                 </h4>
                                 <div className="space-y-1.5">
                                   {grouped.starters.defenders.map((player) => (
-                                    <PlayerCard 
-                                      key={player.IdPlayer} 
-                                      player={player} 
+                                    <PlayerCard
+                                      key={player.IdPlayer}
+                                      player={player}
                                       locale={locale}
                                       teamBookings={awayTeam?.Bookings}
                                     />
@@ -1357,9 +1469,9 @@ export default function MatchDetailsClient({
                                 </h4>
                                 <div className="space-y-1.5">
                                   {grouped.starters.midfielders.map((player) => (
-                                    <PlayerCard 
-                                      key={player.IdPlayer} 
-                                      player={player} 
+                                    <PlayerCard
+                                      key={player.IdPlayer}
+                                      player={player}
                                       locale={locale}
                                       teamBookings={awayTeam?.Bookings}
                                     />
@@ -1376,9 +1488,9 @@ export default function MatchDetailsClient({
                                 </h4>
                                 <div className="space-y-1.5">
                                   {grouped.starters.attackers.map((player) => (
-                                    <PlayerCard 
-                                      key={player.IdPlayer} 
-                                      player={player} 
+                                    <PlayerCard
+                                      key={player.IdPlayer}
+                                      player={player}
                                       locale={locale}
                                       teamBookings={awayTeam?.Bookings}
                                     />
@@ -1395,9 +1507,9 @@ export default function MatchDetailsClient({
                                 </h4>
                                 <div className="space-y-1.5">
                                   {grouped.substitutes.map((player) => (
-                                    <PlayerCard 
-                                      key={player.IdPlayer} 
-                                      player={player} 
+                                    <PlayerCard
+                                      key={player.IdPlayer}
+                                      player={player}
                                       locale={locale}
                                       teamBookings={awayTeam?.Bookings}
                                     />
@@ -1421,12 +1533,12 @@ export default function MatchDetailsClient({
                       {(() => {
                         const headCoach = awayTeam.Coaches.find((coach) => coach.Role === 0);
                         if (!headCoach) return null;
-                        
+
                         const coachName = getPlayerName(headCoach.Name, locale === "en" ? "en-GB" : locale);
                         const coachAlias = headCoach.Alias && headCoach.Alias.length > 0
                           ? getPlayerName(headCoach.Alias, locale === "en" ? "en-GB" : locale)
                           : coachName;
-                        
+
                         return (
                           <div className="mt-6">
                             <h4 className="text-xs font-semibold text-gray-700 mb-2">Manager</h4>
@@ -1536,7 +1648,7 @@ export default function MatchDetailsClient({
                       const historicalAwayTeamName = historicalMatch.Away?.TeamName
                         ? getTeamName(historicalMatch.Away.TeamName, locale === "en" ? "en-GB" : locale)
                         : historicalMatch.Away?.ShortClubName || "TBD";
-                      
+
                       const historicalVenue = historicalMatch.Stadium?.Name && historicalMatch.Stadium.Name.length > 0
                         ? getTeamName(historicalMatch.Stadium.Name, locale === "en" ? "en-GB" : locale)
                         : undefined;
@@ -1547,25 +1659,25 @@ export default function MatchDetailsClient({
                         ? getTeamName(historicalMatch.StageName, locale === "en" ? "en-GB" : locale)
                         : "Regular Season";
                       const historicalDate = formatMatchDate(historicalMatch.Date, locale);
-                      
+
                       const historicalHomeScore = historicalMatch.HomeTeamScore ?? historicalMatch.Home?.Score ?? 0;
                       const historicalAwayScore = historicalMatch.AwayTeamScore ?? historicalMatch.Away?.Score ?? 0;
                       const historicalIsFinished = getMatchStatus(historicalMatch.MatchStatus) === "finished";
-                      
+
                       // Determine winner for dot indicator
                       const homeWon = historicalIsFinished && historicalHomeScore > historicalAwayScore;
                       const awayWon = historicalIsFinished && historicalAwayScore > historicalHomeScore;
-                      
+
                       // Handle click to navigate to match details
                       const handleMatchClick = () => {
                         if (historicalMatch.IdCompetition && historicalMatch.IdSeason && historicalMatch.IdStage && historicalMatch.IdMatch) {
                           router.push(`/${locale}/match-centre/match/${historicalMatch.IdCompetition}/${historicalMatch.IdSeason}/${historicalMatch.IdStage}/${historicalMatch.IdMatch}`);
                         }
                       };
-                      
+
                       return (
-                        <div 
-                          key={historicalMatch.IdMatch} 
+                        <div
+                          key={historicalMatch.IdMatch}
                           onClick={handleMatchClick}
                           className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-5 hover:bg-gray-50 transition-colors cursor-pointer"
                         >
@@ -1612,13 +1724,13 @@ export default function MatchDetailsClient({
                               )}
                             </div>
                           </div>
-                          
+
                           {/* Desktop: Horizontal layout */}
                           <div className="hidden sm:flex items-center justify-center gap-4 sm:gap-6 lg:gap-12">
                             {/* Left: Venue and Date Info */}
                             <div className="flex-1 max-w-[180px] text-left hidden md:block">
                               <p className="text-xs sm:text-sm font-medium text-gray-900 mb-1 leading-tight">
-                                {historicalVenue && historicalCity 
+                                {historicalVenue && historicalCity
                                   ? `${historicalVenue}, ${historicalCity}`
                                   : historicalVenue || historicalCity || 'Venue TBD'}
                               </p>
@@ -1760,24 +1872,23 @@ export default function MatchDetailsClient({
                         {standings.map((row, index) => {
                           // Use real form data from API, fallback to empty form if not available
                           const formResults = row.form || ["-", "-", "-", "-", "-"];
-                          
+
                           // Check if this team is playing in the current match
                           const homeTeamId = homeTeam?.IdTeam;
                           const awayTeamId = awayTeam?.IdTeam;
                           const isPlayingInCurrentMatch = isLive && (
                             row.teamId === homeTeamId || row.teamId === awayTeamId
                           );
-                          
+
                           return (
                             <tr
                               key={row.position}
-                              className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                                isPlayingInCurrentMatch
-                                  ? "bg-blue-100 border-l-4 border-l-blue-600"
-                                  : index % 2 === 0
+                              className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${isPlayingInCurrentMatch
+                                ? "bg-blue-100 border-l-4 border-l-blue-600"
+                                : index % 2 === 0
                                   ? "bg-white"
                                   : "bg-gray-50/50"
-                              }`}
+                                }`}
                             >
                               {/* Position */}
                               <td className="px-2 sm:px-4 py-2 sm:py-3">
@@ -1815,9 +1926,8 @@ export default function MatchDetailsClient({
                               <td className="px-2 sm:px-3 py-2 sm:py-3 text-center text-gray-700 text-xs sm:text-sm">{row.lost}</td>
                               <td className="hidden sm:table-cell px-2 sm:px-3 py-2 sm:py-3 text-center text-gray-700 text-xs sm:text-sm">{row.goalsFor}</td>
                               <td className="hidden sm:table-cell px-2 sm:px-3 py-2 sm:py-3 text-center text-gray-700 text-xs sm:text-sm">{row.goalsAgainst}</td>
-                              <td className={`px-2 sm:px-3 py-2 sm:py-3 text-center font-medium text-xs sm:text-sm ${
-                                row.goalDiff > 0 ? "text-green-600" : row.goalDiff < 0 ? "text-red-600" : "text-gray-700"
-                              }`}>
+                              <td className={`px-2 sm:px-3 py-2 sm:py-3 text-center font-medium text-xs sm:text-sm ${row.goalDiff > 0 ? "text-green-600" : row.goalDiff < 0 ? "text-red-600" : "text-gray-700"
+                                }`}>
                                 {row.goalDiff > 0 ? `+${row.goalDiff}` : row.goalDiff}
                               </td>
                               <td className="px-2 sm:px-3 py-2 sm:py-3 text-center font-bold text-gray-900 text-xs sm:text-sm">{row.points}</td>
@@ -1828,15 +1938,14 @@ export default function MatchDetailsClient({
                                   {[...formResults].reverse().map((result, i) => (
                                     <div
                                       key={i}
-                                      className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[8px] sm:text-[10px] font-bold text-white ${
-                                        result === "W"
-                                          ? "bg-green-500"
-                                          : result === "D"
+                                      className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[8px] sm:text-[10px] font-bold text-white ${result === "W"
+                                        ? "bg-green-500"
+                                        : result === "D"
                                           ? "bg-gray-400"
                                           : result === "L"
-                                          ? "bg-red-500"
-                                          : "bg-white border-2 border-gray-300"
-                                      }`}
+                                            ? "bg-red-500"
+                                            : "bg-white border-2 border-gray-300"
+                                        }`}
                                     >
                                       {result === "-" ? "" : result}
                                     </div>
@@ -1910,8 +2019,329 @@ export default function MatchDetailsClient({
           )}
 
           {activeTab === "related" && (
-            <div className="text-center py-12">
-              <p className="text-gray-600">Related matches will be displayed here</p>
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              {isLoadingRelatedMatches ? (
+                <div className="text-center py-8 sm:py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fifa-header mx-auto mb-2"></div>
+                  <p className="text-gray-600 text-sm">Loading related matches...</p>
+                </div>
+              ) : relatedMatches.length > 0 ? (
+                <div className="px-14 py-4">
+                  <h3 className="text-lg sm:text-xl font-bold text-navy-950 mb-4 flex justify-center items-center">RELATED MATCHES</h3>
+                  {/* Group matches by date */}
+                  {Object.entries(
+                    relatedMatches.reduce((acc, match) => {
+                      const date = formatMatchDate(match.Date, locale);
+                      if (!acc[date]) acc[date] = [];
+                      acc[date].push(match);
+                      return acc;
+                    }, {} as Record<string, MatchAPIItem[]>)
+                  )
+                    .sort(([dateA], [dateB]) => {
+                      // Sort by date
+                      const a = new Date(relatedMatches.find(m => formatMatchDate(m.Date, locale) === dateA)?.Date || 0);
+                      const b = new Date(relatedMatches.find(m => formatMatchDate(m.Date, locale) === dateB)?.Date || 0);
+                      return a.getTime() - b.getTime();
+                    })
+                    .map(([date, matches]) => (
+                      <div key={date} className="mb-6 last:mb-0">
+                        {/* Date Header */}
+                        <div className="text-sm font-semibold text-gray-600 mb-3">
+                          {date}
+                        </div>
+
+                        {/* Matches for this date */}
+                        <div className="space-y-3">
+                          {matches.map((relatedMatch) => {
+                            const relatedHomeTeam = relatedMatch.HomeTeam || relatedMatch.Home;
+                            const relatedAwayTeam = relatedMatch.AwayTeam || relatedMatch.Away;
+                            const relatedHomeTeamName = relatedHomeTeam?.TeamName
+                              ? getTeamName(relatedHomeTeam.TeamName, locale === "en" ? "en-GB" : locale)
+                              : relatedHomeTeam?.ShortClubName || "TBD";
+                            const relatedAwayTeamName = relatedAwayTeam?.TeamName
+                              ? getTeamName(relatedAwayTeam.TeamName, locale === "en" ? "en-GB" : locale)
+                              : relatedAwayTeam?.ShortClubName || "TBD";
+                            const relatedStageName = relatedMatch.StageName && relatedMatch.StageName.length > 0
+                              ? getTeamName(relatedMatch.StageName, locale === "en" ? "en-GB" : locale)
+                              : "";
+                            const relatedMatchStatus = getMatchStatus(relatedMatch.MatchStatus);
+                            const relatedMatchTime = formatMatchTime(relatedMatch.Date, locale);
+
+                            return (
+                              <div
+                                key={relatedMatch.IdMatch}
+                                className="bg-gray-50 rounded-lg p-3 sm:p-4 hover:bg-gray-100 transition-colors cursor-pointer"
+                                onClick={() => {
+                                  router.push(
+                                    `/${locale}/match-centre/${relatedMatch.IdCompetition}/${relatedMatch.IdSeason}/${relatedMatch.IdStage}/${relatedMatch.IdMatch}`
+                                  );
+                                }}
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  {/* Left side - Stage and Teams */}
+                                  <div className="flex-1 min-w-0">
+                                    {/* Stage name */}
+                                    {relatedStageName && (
+                                      <div className="text-xs text-blue-600 font-medium mb-2">
+                                        {relatedStageName}
+                                      </div>
+                                    )}
+
+                                    {/* Teams */}
+                                    <div className="space-y-1.5">
+                                      {/* Home Team */}
+                                      <div className="flex items-center gap-2">
+                                        {relatedHomeTeam?.IdTeam && (
+                                          <img
+                                            src={formatTeamLogo(relatedHomeTeam.IdTeam)}
+                                            alt={relatedHomeTeamName}
+                                            className="w-5 h-5 object-contain flex-shrink-0"
+                                            onError={(e) => {
+                                              const target = e.currentTarget as HTMLImageElement | null;
+                                              if (target) target.style.display = "none";
+                                            }}
+                                          />
+                                        )}
+                                        <span className="text-sm font-medium text-navy-950 truncate">
+                                          {relatedHomeTeamName}
+                                        </span>
+                                      </div>
+
+                                      {/* Away Team */}
+                                      <div className="flex items-center gap-2">
+                                        {relatedAwayTeam?.IdTeam && (
+                                          <img
+                                            src={formatTeamLogo(relatedAwayTeam.IdTeam)}
+                                            alt={relatedAwayTeamName}
+                                            className="w-5 h-5 object-contain flex-shrink-0"
+                                            onError={(e) => {
+                                              const target = e.currentTarget as HTMLImageElement | null;
+                                              if (target) target.style.display = "none";
+                                            }}
+                                          />
+                                        )}
+                                        <span className="text-sm font-medium text-navy-950 truncate">
+                                          {relatedAwayTeamName}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Center - Score or Time */}
+                                  <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                                    {relatedMatchStatus === "finished" ? (
+                                      <>
+                                        <div className="text-lg sm:text-xl font-bold text-navy-950">
+                                          {relatedMatch.HomeTeamScore ?? relatedHomeTeam?.Score ?? 0}
+                                        </div>
+                                        <div className="text-lg sm:text-xl font-bold text-navy-950">
+                                          {relatedMatch.AwayTeamScore ?? relatedAwayTeam?.Score ?? 0}
+                                        </div>
+                                      </>
+                                    ) : relatedMatchStatus === "live" ? (
+                                      <>
+                                        <div className="text-lg sm:text-xl font-bold text-navy-950">
+                                          {relatedMatch.HomeTeamScore ?? relatedHomeTeam?.Score ?? 0}
+                                        </div>
+                                        <div className="text-lg sm:text-xl font-bold text-navy-950">
+                                          {relatedMatch.AwayTeamScore ?? relatedAwayTeam?.Score ?? 0}
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="text-sm font-medium text-gray-600">
+                                        {relatedMatchTime}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Right side - Status badge and arrow */}
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    {relatedMatchStatus === "live" && (
+                                      <span className="bg-red-600 text-white px-2 sm:px-3 py-1 rounded text-[10px] sm:text-xs font-semibold whitespace-nowrap">
+                                        LIVE
+                                      </span>
+                                    )}
+                                    {relatedMatchStatus === "finished" && (
+                                      <span className="bg-blue-600 text-white px-2 sm:px-3 py-1 rounded text-[10px] sm:text-xs font-semibold whitespace-nowrap">
+                                        FT
+                                      </span>
+                                    )}
+                                    <svg
+                                      className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M9 5l7 7-7 7"
+                                      />
+                                    </svg>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">No related matches found</p>
+                </div>
+              )}
+
+              {/* Next Matches Section */}
+              {(nextMatchesHome.length > 0 || nextMatchesAway.length > 0) && (
+                <div className="px-14 py-4 border-t border-gray-200">
+                  <h3 className="text-lg sm:text-xl font-bold text-navy-950 mb-4 flex justify-center items-center">NEXT MATCHES</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Home Team Next Matches */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">{homeTeamName}</h4>
+                      {isLoadingNextMatches ? (
+                        <div className="text-center py-4">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-fifa-header mx-auto"></div>
+                        </div>
+                      ) : nextMatchesHome.length > 0 ? (
+                        <div className="space-y-2">
+                          {nextMatchesHome.map((nextMatch) => {
+                            const nextHomeTeam = nextMatch.HomeTeam || nextMatch.Home;
+                            const nextAwayTeam = nextMatch.AwayTeam || nextMatch.Away;
+                            const nextHomeTeamName = nextHomeTeam?.TeamName
+                              ? getTeamName(nextHomeTeam.TeamName, locale === "en" ? "en-GB" : locale)
+                              : nextHomeTeam?.ShortClubName || "TBD";
+                            const nextAwayTeamName = nextAwayTeam?.TeamName
+                              ? getTeamName(nextAwayTeam.TeamName, locale === "en" ? "en-GB" : locale)
+                              : nextAwayTeam?.ShortClubName || "TBD";
+                            const nextMatchDate = formatMatchDate(nextMatch.Date, locale);
+                            const nextMatchTime = formatMatchTime(nextMatch.Date, locale);
+
+                            // Determine if home team is the current team
+                            const isHomeTeamCurrent = nextHomeTeam?.IdTeam === homeTeam?.IdTeam;
+                            const opponentName = isHomeTeamCurrent ? nextAwayTeamName : nextHomeTeamName;
+                            const opponentLogo = isHomeTeamCurrent
+                              ? formatTeamLogo(nextAwayTeam?.IdTeam)
+                              : formatTeamLogo(nextHomeTeam?.IdTeam);
+                            const matchLocation = isHomeTeamCurrent ? "vs" : "@";
+
+                            return (
+                              <div
+                                key={nextMatch.IdMatch}
+                                className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors cursor-pointer"
+                                onClick={() => {
+                                  router.push(
+                                    `/${locale}/match-centre/${nextMatch.IdCompetition}/${nextMatch.IdSeason}/${nextMatch.IdStage}/${nextMatch.IdMatch}`
+                                  );
+                                }}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    {opponentLogo && (
+                                      <img
+                                        src={opponentLogo}
+                                        alt={opponentName}
+                                        className="w-5 h-5 object-contain flex-shrink-0"
+                                        onError={(e) => {
+                                          const target = e.currentTarget as HTMLImageElement | null;
+                                          if (target) target.style.display = "none";
+                                        }}
+                                      />
+                                    )}
+                                    <span className="text-xs font-medium text-gray-600">{matchLocation}</span>
+                                    <span className="text-sm font-medium text-navy-950 truncate">{opponentName}</span>
+                                  </div>
+                                  <div className="text-xs text-gray-500 flex-shrink-0">
+                                    {nextMatchDate} • {nextMatchTime}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-gray-500">No upcoming matches</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Away Team Next Matches */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">{awayTeamName}</h4>
+                      {isLoadingNextMatches ? (
+                        <div className="text-center py-4">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-fifa-header mx-auto"></div>
+                        </div>
+                      ) : nextMatchesAway.length > 0 ? (
+                        <div className="space-y-2">
+                          {nextMatchesAway.map((nextMatch) => {
+                            const nextHomeTeam = nextMatch.HomeTeam || nextMatch.Home;
+                            const nextAwayTeam = nextMatch.AwayTeam || nextMatch.Away;
+                            const nextHomeTeamName = nextHomeTeam?.TeamName
+                              ? getTeamName(nextHomeTeam.TeamName, locale === "en" ? "en-GB" : locale)
+                              : nextHomeTeam?.ShortClubName || "TBD";
+                            const nextAwayTeamName = nextAwayTeam?.TeamName
+                              ? getTeamName(nextAwayTeam.TeamName, locale === "en" ? "en-GB" : locale)
+                              : nextAwayTeam?.ShortClubName || "TBD";
+                            const nextMatchDate = formatMatchDate(nextMatch.Date, locale);
+                            const nextMatchTime = formatMatchTime(nextMatch.Date, locale);
+
+                            // Determine if home team is the current team
+                            const isHomeTeamCurrent = nextHomeTeam?.IdTeam === awayTeam?.IdTeam;
+                            const opponentName = isHomeTeamCurrent ? nextAwayTeamName : nextHomeTeamName;
+                            const opponentLogo = isHomeTeamCurrent
+                              ? formatTeamLogo(nextAwayTeam?.IdTeam)
+                              : formatTeamLogo(nextHomeTeam?.IdTeam);
+                            const matchLocation = isHomeTeamCurrent ? "vs" : "@";
+
+                            return (
+                              <div
+                                key={nextMatch.IdMatch}
+                                className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors cursor-pointer"
+                                onClick={() => {
+                                  router.push(
+                                    `/${locale}/match-centre/${nextMatch.IdCompetition}/${nextMatch.IdSeason}/${nextMatch.IdStage}/${nextMatch.IdMatch}`
+                                  );
+                                }}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    {opponentLogo && (
+                                      <img
+                                        src={opponentLogo}
+                                        alt={opponentName}
+                                        className="w-5 h-5 object-contain flex-shrink-0"
+                                        onError={(e) => {
+                                          const target = e.currentTarget as HTMLImageElement | null;
+                                          if (target) target.style.display = "none";
+                                        }}
+                                      />
+                                    )}
+                                    <span className="text-xs font-medium text-gray-600">{matchLocation}</span>
+                                    <span className="text-sm font-medium text-navy-950 truncate">{opponentName}</span>
+                                  </div>
+                                  <div className="text-xs text-gray-500 flex-shrink-0">
+                                    {nextMatchDate} • {nextMatchTime}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-gray-500">No upcoming matches</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

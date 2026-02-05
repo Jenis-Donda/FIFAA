@@ -22,9 +22,9 @@ type Props = {
     standings: any[];
 };
 
-export default function WorldCupHome({ slides, stories, rankings, insideFIFA, upcomingTournaments, matches, dict, hostCountries, standings}: Props) {
-    const worldCupStartDate = new Date("2026-06-11T00:00:00Z");
-    
+export default function WorldCupHome({ slides, stories, rankings, insideFIFA, upcomingTournaments, matches, dict, hostCountries, standings }: Props) {
+    const worldCupStartDate = new Date("2026-06-11T20:00:00Z");
+
     return (
         <>
             <CountdownTimer

@@ -519,6 +519,8 @@ export interface Match {
   matchDay?: number;
   venue?: string;
   winner?: string;
+  stageName?: string;
+  groupName?: string | null;
 }
 
 export interface MatchesByCompetition {
@@ -569,4 +571,3 @@ export interface HeadToHeadAPIResponse {
   Properties?: Record<string, unknown> | null;
   IsUpdateable?: boolean | null;
 }
-

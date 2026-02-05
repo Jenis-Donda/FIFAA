@@ -46,9 +46,6 @@ export default function HostCountriesCarousel({ countries }: Props) {
     <section className="py-8 sm:py-10 md:py-12 bg-white">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-4 sm:mb-6 gap-4">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
-            Host Countries
-          </h2>
           <div className="flex gap-1 sm:gap-2">
             <button
               onClick={() => scroll("left")}
