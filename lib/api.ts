@@ -978,6 +978,118 @@ export async function fetchWorldCupStandings(locale: string = "en") {
   }
 }
 
+
+// ============================================
+// News Page API Functions
+// ============================================
+
+/**
+ * Fetch news page data for a specific locale
+ */
+export async function fetchNewsPage(locale: string): Promise<FIFAPageResponse | null> {
+  try {
+    const response = await fetch(`${FIFA_API_BASE}/${locale}/news`, {
+      next: { revalidate: 300 }, // Cache for 5 minutes
+      headers: FIFA_API_HEADERS,
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch news page: ${response.status}`);
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching news page:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetch a news section by entry ID
+ */
+export async function fetchNewsSectionByEntryId(
+  entryId: string,
+  locale: string,
+  limit: number = 20
+): Promise<NewsResponse | null> {
+  try {
+    const response = await fetch(
+      `${FIFA_SECTIONS_API}/news/${entryId}?locale=${locale}&limit=${limit}`,
+      {
+        next: { revalidate: 300 }, // Cache for 5 minutes
+        headers: FIFA_API_HEADERS,
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to fetch news section: ${response.status}`);
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching news section:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetch a promo carousel section by entry ID
+ */
+export async function fetchPromoCarouselSection(
+  entryId: string,
+  locale: string
+): Promise<PromoCarouselResponse | null> {
+  try {
+    const response = await fetch(
+      `${FIFA_SECTIONS_API}/promoCarousel/${entryId}?locale=${locale}`,
+      {
+        next: { revalidate: 300 }, // Cache for 5 minutes
+        headers: FIFA_API_HEADERS,
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to fetch promo carousel: ${response.status}`);
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching promo carousel:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetch a hero banner section by entry ID
+ */
+export async function fetchHeroBannerSection(
+  entryId: string,
+  locale: string
+): Promise<any | null> {
+  try {
+    const response = await fetch(
+      `${FIFA_SECTIONS_API}/heroBanner/${entryId}?locale=${locale}`,
+      {
+        next: { revalidate: 300 }, // Cache for 5 minutes
+        headers: FIFA_API_HEADERS,
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to fetch hero banner: ${response.status}`);
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching hero banner:", error);
+    return null;
+  }
+}
+
 /**
  * Fetch World Cup 2026 teams data
  */
