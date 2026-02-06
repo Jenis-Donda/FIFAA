@@ -5,6 +5,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import ScoresFixtures from "@/components/worldcup/ScoresFixtures";
 import WorldCupHeader from "@/components/worldcup/WorldCupHeader";
 import type { MatchAPIItem, Match } from "@/lib/types";
+import Footer from "@/components/Footer";
 
 type PageProps = {
     params: { locale: string };
@@ -94,6 +95,7 @@ export default async function ScoresFixturesPage({ params }: PageProps) {
         <>
             <WorldCupHeader locale={locale} dict={dict} />
             <ScoresFixtures matches={matches} standings={standings} dict={dict} />
+            <Footer locale={locale} dict={dict} />
         </>
     );
 }

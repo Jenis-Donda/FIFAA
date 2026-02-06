@@ -103,7 +103,7 @@ export function extractStories(data: NewsResponse | null, locale: string = "en")
 
   return data.items.map((item) => {
     // Use the full articlePageUrl path as the link
-    // articlePageUrl format: /en/tournaments/mens/worldcup/canadamexicousa2026/articles/casemiro-brazil-manchester-united-analysis
+    // articlePageUrl format: /en/tournaments/mens/football/worldcup2026/articles/casemiro-brazil-manchester-united-analysis
     // This preserves the full path structure like FIFA.com
     const articlePath = item.articlePageUrl || `/${locale}/articles/${item.slug || item.entryId}`;
     
@@ -1151,7 +1151,7 @@ export async function fetchPromoCarousel(locale: string = "en"): Promise<any> {
 /**
  * Fetch article page by full path
  * Uses the pages API with the full article path
- * Example: /en/tournaments/mens/worldcup/canadamexicousa2026/articles/casemiro-brazil-manchester-united-analysis
+ * Example: /en/tournaments/mens/football/worldcup2026/articles/casemiro-brazil-manchester-united-analysis
  */
 export async function fetchArticlePage(articlePath: string): Promise<FIFAPageResponse | null> {
   try {

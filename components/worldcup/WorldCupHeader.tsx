@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Sidebar from "@/components/Sidebar";
+import WorldCupSidebar from "@/components/worldcup/WorldCupSidebar";
 import LanguageDropdown from "@/components/LanguageDropdown";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -37,13 +37,13 @@ export default function WorldCupHeader({ locale, dict }: Props) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const navItems = [
-        { label: "SCORES & FIXTURES", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026/scores-fixtures` },
+        { label: "SCORES & FIXTURES", href: `/${locale}/tournaments/mens/football/worldcup2026/scores-fixtures` },
         {
             label: "STANDINGS",
-            href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026/standings`
+            href: `/${locale}/tournaments/mens/football/worldcup2026/standings`
         },
-        { label: "TEAMS", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026/teams` },
-        { label: "HOST COUNTRIES AND CITIES", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026/host-cities` },
+        { label: "TEAMS", href: `/${locale}/tournaments/mens/football/worldcup2026/teams` },
+        { label: "HOST COUNTRIES AND CITIES", href: `/${locale}/tournaments/mens/football/worldcup2026/host-cities` },
     ];
 
     return (
@@ -51,23 +51,12 @@ export default function WorldCupHeader({ locale, dict }: Props) {
             {/* Top thin black utility bar */}
             <div className="bg-black text-white h-9 flex items-center justify-between w-full">
                 <div className="pl-4">
-                    <Link href={`/${locale}/tournaments/mens/worldcup/canadamexicousa2026`} className="flex items-center h-full [&_svg]:h-5 [&_svg]:w-auto">
+                    <Link href={`/`} className="flex items-center h-full [&_svg]:h-5 [&_svg]:w-auto">
                         <svg width="100" height="20" viewBox="0 0 90 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <text x="0" y="14" fill="white" fontFamily="Arial Black, sans-serif" fontSize="14" fontWeight="900" letterSpacing="0.5">FIFAA</text>
                         </svg>
                     </Link>
                 </div>
-                <nav className="flex items-center h-full pr-6" aria-label="Utility navigation">
-                    <Link href={`/${locale}/tickets`} className="flex items-center h-full px-4 text-xs font-medium tracking-wider uppercase text-white/90 hover:text-white">
-                        {dict.nav.ticketsHospitality}
-                    </Link>
-                    <Link href="https://www.plus.fifa.com" className="flex items-center h-full px-4 text-xs font-medium tracking-wider uppercase text-white/90 hover:text-white">
-                        {dict.nav.fifaPlus}
-                    </Link>
-                    <Link href="https://store.fifa.com" className="flex items-center h-full px-4 text-xs font-medium tracking-wider uppercase text-white/90 hover:text-white">
-                        {dict.nav.fifaStore}
-                    </Link>
-                </nav>
             </div>
 
             {/* Divider between top utility bar and main nav */}
@@ -85,7 +74,7 @@ export default function WorldCupHeader({ locale, dict }: Props) {
                             <HamburgerIcon />
                         </button>
 
-                        <Link href={`/${locale}/tournaments/mens/worldcup/canadamexicousa2026`} className="flex items-center h-full [&_svg]:h-9 [&_svg]:w-auto transition-opacity duration-200 hover:opacity-90" aria-label="FIFA Home">
+                        <Link href={`/${locale}/tournaments/mens/football/worldcup2026`} className="flex items-center h-full [&_svg]:h-9 [&_svg]:w-auto transition-opacity duration-200 hover:opacity-90" aria-label="FIFA Home">
                             <FIFALogo />
                         </Link>
                     </div>
@@ -103,18 +92,12 @@ export default function WorldCupHeader({ locale, dict }: Props) {
                     </nav>
 
                     <div className="flex items-center gap-2 shrink-0">
-                        <LanguageDropdown currentLocale={locale} />
-                        <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="12" cy="8" r="4" stroke="white" strokeWidth="1.5" />
-                                <path d="M4 20C4 16.6863 7.58172 14 12 14C16.4183 14 20 16.6863 20 20" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                            </svg>
-                        </div>
+                        <LanguageDropdown currentLocale={locale} /> 
                     </div>
                 </div>
             </div>
 
-            <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} locale={locale} dict={dict} />
+            <WorldCupSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} locale={locale} dict={dict} />
         </header>
     );
 }

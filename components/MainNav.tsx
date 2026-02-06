@@ -58,7 +58,7 @@ export default function MainNav({ locale, dict }: MainNavProps) {
 
   const tournamentSubNavItems = [
     { label: dict.sidebar.overview, href: `/${locale}/tournaments` },
-    { label: "FIFA WORLD CUP 2026™", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026` },
+    { label: "FIFA WORLD CUP 2026™", href: `/${locale}/tournaments/mens/football/worldcup2026` },
   ];
 
   return (

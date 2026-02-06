@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { CarouselSlide } from "@/lib/types";
-import CountdownTimer from "./CountdownTimer";
 
 type HeroCarouselProps = {
     slides: CarouselSlide[];   autoPlayInterval?: number;
@@ -179,13 +178,6 @@ export default function HeroCarousel({
                                     </p>
                                 )}
 
-                                {/* CTA Button */}
-                                <Link
-                                    href={currentSlide.link}
-                                    className="inline-flex items-center px-7 sm:px-8 py-3 bg-white text-[#1a5694] text-sm font-semibold rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:bg-gray-50"
-                                >
-                                    {currentSlide.cta}
-                                </Link>
                             </div>
                         </div>
 

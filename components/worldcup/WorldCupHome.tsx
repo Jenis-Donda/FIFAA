@@ -35,7 +35,7 @@ export default function WorldCupHome({ slides, stories, rankings, insideFIFA, up
                 subtitle="11 June - 19 July 2026"
                 logo="https://digitalhub.fifa.com/transform/157d23bf-7e13-4d7b-949e-5d27d340987e/WC26_Logo?&io=transform:fill,height:210&quality=75"
                 ctaText="View matches"
-                ctaLink="/en/match-score"
+                ctaLink="/en/tournaments/mens/football/worldcup2026/scores-fixtures"
             />
             <HeroCarousel slides={slides} />
             <WorldCupMatches matches={matches} />

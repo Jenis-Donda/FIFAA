@@ -18,10 +18,10 @@ export default function Footer({ dict, locale }: FooterProps) {
 
   // Second section: FIFA World Cup - Links from World Cup page header
   const worldCupLinks = [
-    { label: "SCORES & FIXTURES", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026/scores-fixtures` },
-    { label: "STANDINGS", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026/standings` },
-    { label: "TEAMS", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026/teams` },
-    { label: "HOST COUNTRIES AND CITIES", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026/host-cities` },
+    { label: "SCORES & FIXTURES", href: `/${locale}/tournaments/mens/football/worldcup2026/scores-fixtures` },
+    { label: "STANDINGS", href: `/${locale}/tournaments/mens/football/worldcup2026/standings` },
+    { label: "TEAMS", href: `/${locale}/tournaments/mens/football/worldcup2026/teams` },
+    { label: "HOST COUNTRIES AND CITIES", href: `/${locale}/tournaments/mens/football/worldcup2026/host-cities` },
   ];
 
   return (

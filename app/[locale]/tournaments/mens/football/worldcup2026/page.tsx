@@ -7,6 +7,7 @@ import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import type { MatchAPIItem, Match } from "@/lib/types";
 import WorldCupStandings from "@/components/worldcup/WorldCupStandings";
+import Footer from "@/components/Footer";
 
 type PageProps = {
   params: { locale: string };
@@ -190,6 +191,7 @@ export default async function WorldCupHostPage({ params }: PageProps) {
             dict={dict}
             locale={locale}
           />
+          <Footer dict={dict} locale={locale} />
         </>
     );
 }

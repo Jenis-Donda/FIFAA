@@ -1,24 +1,28 @@
 import { Metadata } from "next";
-import { fetchWorldCupStandings } from "@/lib/api";
 import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import WorldCupHeader from "@/components/worldcup/WorldCupHeader";
-import Standings from "@/components/worldcup/Standings";
+import HostCountriesAndCities from "@/components/worldcup/HostCountriesAndCities";
+import PromoCarousel from "@/components/worldcup/PromoCarousel";
+import { fetchPromoCarousel } from "@/lib/api";
+import Footer from "@/components/Footer";
 
 type PageProps = {
     params: { locale: string };
 };
 
-export default async function StandingsPage({ params }: PageProps) {
+export default async function HostCitiesPage({ params }: PageProps) {
     const locale: Locale = isValidLocale(params.locale) ? params.locale : "en";
     const dict = getDictionary(locale);
 
-    const standingsData = await fetchWorldCupStandings(locale);
+    const carouselData = await fetchPromoCarousel(locale);
 
     return (
         <>
             <WorldCupHeader locale={locale} dict={dict} />
-            <Standings standingsData={standingsData} dict={dict} />
+            <HostCountriesAndCities />
+            <PromoCarousel carouselData={carouselData} />
+            <Footer locale={locale} dict={dict} />
         </>
     );
 }
@@ -27,7 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const locale: Locale = isValidLocale(params.locale) ? params.locale : "en";
 
     return {
-        title: "Standings | FIFA World Cup 2026™",
-        description: "View group standings for the FIFA World Cup 2026™",
+        title: "Host Countries and Cities | FIFA World Cup 2026™",
+        description: "Explore the host countries and cities for the FIFA World Cup 2026™",
     };
 }
