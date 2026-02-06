@@ -861,11 +861,6 @@ export async function fetchMatchDetails(
     }
 
     const data = await response.json();
-    console.log('Match details API response:', {
-      hasLineup: !!(data.HomeTeam?.Players || data.Home?.Players),
-      homeTeamPlayers: data.HomeTeam?.Players?.length || data.Home?.Players?.length || 0,
-      awayTeamPlayers: data.AwayTeam?.Players?.length || data.Away?.Players?.length || 0,
-    });
     
     // The API might return the match directly or wrapped in Results array
     return data.Results?.[0] || data || null;
@@ -942,14 +937,10 @@ export async function fetchWorldCupMatches(
 export async function fetchWorldCupHostCountries(
   language: string = "en"
 ): Promise<any> {
-  console.log('Fetching host countries...');
   try {
-    console.log('Fetching host countries...');
     const response = await fetch(
       `https://cxm-api.fifa.com/fifaplusweb/api/sections/teamsModule/5XwqLVjelDeqteyJh06Hrm?locale=en&limit=200`
     );
-    
-    console.log('Host countries API status:', response.status);
     
     if (!response.ok) {
       console.error(`Failed to fetch host countries: ${response.status}`);
@@ -957,7 +948,6 @@ export async function fetchWorldCupHostCountries(
     }
     
     const data = await response.json();
-    console.log('Host countries API data:', data);
     return data;
   } catch (error) {
     console.error("Error fetching host countries:", error);

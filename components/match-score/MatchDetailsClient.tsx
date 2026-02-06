@@ -498,7 +498,6 @@ export default function MatchDetailsClient({
         );
 
         if (matchData) {
-          console.log("Match data received:", matchData);
           setMatch(matchData);
         } else {
           console.error("No match data returned from API");

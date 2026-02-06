@@ -13,8 +13,6 @@ export default function PromoCarousel({ carouselData }: PromoCarouselProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-    console.log("Promo Carousel Data:", JSON.stringify(carouselData, null, 2));
-
     if (!carouselData?.items || carouselData.items.length === 0) {
         return null;
     }
@@ -78,8 +76,6 @@ export default function PromoCarousel({ carouselData }: PromoCarouselProps) {
                         const title = item.title || item.headline || item.name;
                         const description = item.description || item.summary || item.text;
                         const link = item.link?.url || item.url || item.href || "#";
-
-                        console.log(`Item ${index}:`, { imageUrl, title, description, link });
 
                         return (
                             <Link

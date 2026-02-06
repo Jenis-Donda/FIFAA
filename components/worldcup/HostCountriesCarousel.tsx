@@ -25,7 +25,6 @@ function ChevronRight() {
 
 export default function HostCountriesCarousel({ countries }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  console.log('Countries:', countries);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {

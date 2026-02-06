@@ -1,3 +1,4 @@
+import React from "react";
 import Image from "next/image";
 
 // Types for the rich text structure
@@ -65,7 +66,7 @@ type RichTextDocument = {
 /**
  * Render text node with marks (bold, italic, etc.)
  */
-function renderTextNode(node: TextNode): JSX.Element {
+function renderTextNode(node: TextNode): React.ReactElement {
   let content: React.ReactNode = node.value;
 
   // Apply marks in order
@@ -94,7 +95,7 @@ function renderTextNode(node: TextNode): JSX.Element {
 /**
  * Render hyperlink node - Convert to plain text (no links)
  */
-function renderHyperlinkNode(node: HyperlinkNode): JSX.Element {
+function renderHyperlinkNode(node: HyperlinkNode): React.ReactElement {
   // Just render the content as plain text, no link
   const content = node.content.map((child, index) => renderRichTextNode(child, index));
   return <span key={Math.random()}>{content}</span>;
@@ -103,7 +104,7 @@ function renderHyperlinkNode(node: HyperlinkNode): JSX.Element {
 /**
  * Render embedded entry block (images, videos, social media)
  */
-function renderEmbeddedEntryBlock(node: EmbeddedEntryBlock): JSX.Element | null {
+function renderEmbeddedEntryBlock(node: EmbeddedEntryBlock): React.ReactElement | null {
   const { target } = node.data;
 
   // Handle images
@@ -157,7 +158,7 @@ function renderEmbeddedEntryBlock(node: EmbeddedEntryBlock): JSX.Element | null 
 /**
  * Recursively render rich text nodes
  */
-function renderRichTextNode(node: RichTextNode, index: number = 0): JSX.Element | null {
+function renderRichTextNode(node: RichTextNode, index: number = 0): React.ReactElement | null {
   switch (node.nodeType) {
     case "text":
       return renderTextNode(node as TextNode);
@@ -270,7 +271,7 @@ function renderRichTextNode(node: RichTextNode, index: number = 0): JSX.Element 
 /**
  * Parse and render rich text document
  */
-export function parseRichText(richtext: RichTextDocument | null | undefined): JSX.Element | null {
+export function parseRichText(richtext: RichTextDocument | null | undefined): React.ReactElement | null {
   if (!richtext || !richtext.content || !Array.isArray(richtext.content)) {
     return null;
   }

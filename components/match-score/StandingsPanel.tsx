@@ -83,7 +83,6 @@ export default function StandingsPanel({
   isLoading = false,
   onShowTable,
 }: StandingsPanelProps) {
-  console.log('standings: ', standings);
   const displayStandings = standings.length > 0 ? standings.slice(0, 4) : [];
   const displayCompetition = competition || "Competition";
 
