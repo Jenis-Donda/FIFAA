@@ -43,6 +43,11 @@ export async function generateMetadata({
     authors: [{ name: "FIFAA" }],
     creator: "FIFAA",
     publisher: "FIFAA",
+    icons: {
+      icon: "/images/loader.jpg",
+      shortcut: "/images/loader.jpg",
+      apple: "/images/loader.jpg",
+    },
     viewport: {
       width: "device-width",
       initialScale: 1,
