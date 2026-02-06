@@ -1,5 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
+import type { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { fetchArticlePage, fetchArticleSection, fetchPromoCarouselSection } from "@/lib/api";
@@ -11,6 +13,52 @@ import { parseRichText } from "@/lib/richtextParser";
 type PageProps = {
   params: { locale: string; path: string[] };
 };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const locale: Locale = isValidLocale(params.locale) ? params.locale : "en";
+  const pathString = params.path.join('/');
+  const articlePath = `/${params.locale}/${pathString}`;
+  
+  const articlePageData = await fetchArticlePage(articlePath);
+  
+  if (!articlePageData) {
+    return {
+      title: "Article | FIFAA",
+      description: "Read the latest articles and stories from FIFAA, the Home of Football.",
+    };
+  }
+
+  const title = articlePageData.meta?.title || "Article | FIFAA";
+  const description = articlePageData.meta?.description || "Read the latest articles and stories from FIFAA, the Home of Football.";
+  const image = articlePageData.meta?.image || "";
+  const url = `https://example.com/${articlePath}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "article",
+      locale: locale,
+      images: image ? [{ url: image, alt: title }] : [],
+      publishedTime: articlePageData.createdDate,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: image ? [image] : [],
+    },
+    alternates: {
+      canonical: url,
+      languages: {
+        [locale]: url,
+      },
+    },
+  };
+}
 
 export default async function ArticlePage({ params }: PageProps) {
   const locale: Locale = isValidLocale(params.locale) ? params.locale : "en";
@@ -92,19 +140,63 @@ export default async function ArticlePage({ params }: PageProps) {
     promoCarouselSection ? fetchPromoCarouselSection(promoCarouselSection.entryId, locale) : null,
   ]);
 
+  // Prepare structured data for SEO
+  const articleTitle = articleContent?.articleTitle || articlePageData.meta.title;
+  const articleDescription = articleContent?.articlePreviewText || articlePageData.meta.description;
+  const articleImage = articleContent?.heroImage?.src || articlePageData.meta.image;
+  const publishedDate = articleContent?.articlePublishedDate || articlePageData.createdDate;
+  const articleUrl = `https://example.com/${locale}/${params.path.join('/')}`;
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: articleTitle,
+    description: articleDescription,
+    image: articleImage ? [articleImage] : [],
+    datePublished: publishedDate,
+    dateModified: publishedDate,
+    author: {
+      "@type": "Organization",
+      name: "FIFAA",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "FIFAA",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://example.com/logo.png",
+      },
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": articleUrl,
+    },
+    inLanguage: locale,
+  };
+
   return (
-    <div className="min-h-screen bg-surface-100">
-      <Header locale={locale} dict={dict} />
-      <main className="py-10 lg:py-14">
-        <ArticleContent 
-          articlePageData={articlePageData}
-          articleContent={articleContent}
-          promoCarouselData={promoCarouselData}
-          locale={locale}
-        />
-      </main>
-      <Footer dict={dict} locale={locale} />
-    </div>
+    <>
+      <Script
+        id="article-schema"
+        type="application/ld+json"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData),
+        }}
+      />
+      <div className="min-h-screen bg-surface-100">
+        <Header locale={locale} dict={dict} />
+        <main className="py-10 lg:py-14">
+          <ArticleContent 
+            articlePageData={articlePageData}
+            articleContent={articleContent}
+            promoCarouselData={promoCarouselData}
+            locale={locale}
+          />
+        </main>
+        <Footer dict={dict} locale={locale} />
+      </div>
+    </>
   );
 }
 
@@ -166,14 +258,14 @@ function ArticleContent({ articlePageData, articleContent, promoCarouselData, lo
       </Link>
 
       {/* Article Header */}
-      <header className="mb-8">
+      <header className="mb-6 sm:mb-8">
         {/* Title - Use articleTitle from articleContent if available, otherwise use meta.title */}
-        <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold text-navy-950 leading-tight mb-6">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-navy-950 leading-tight mb-4 sm:mb-6">
           {articleContent?.articleTitle || articlePageData.meta.title}
         </h1>
 
         {/* Meta Information */}
-        <div className="flex flex-wrap items-center gap-4 text-sm text-content-secondary mb-6">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-content-secondary mb-4 sm:mb-6">
           <time dateTime={articleContent?.articlePublishedDate || articlePageData.createdDate}>
             {articleContent?.articlePublishedDate
               ? new Date(articleContent.articlePublishedDate).toLocaleDateString(
@@ -191,7 +283,7 @@ function ArticleContent({ articlePageData, articleContent, promoCarouselData, lo
               {displayTags.map((tag: string, index: number) => (
                 <span
                   key={index}
-                  className="px-3 py-1 bg-surface-200 rounded-full text-xs font-medium"
+                  className="px-2 sm:px-3 py-1 bg-surface-200 rounded-full text-xs font-medium"
                 >
                   {tag}
                 </span>
@@ -202,7 +294,7 @@ function ArticleContent({ articlePageData, articleContent, promoCarouselData, lo
 
         {/* Description - Use articlePreviewText from articleContent if available */}
         {(articleContent?.articlePreviewText || articlePageData.meta.description) && (
-          <p className="text-lg lg:text-xl text-content-secondary leading-relaxed mb-8 font-medium">
+          <p className="text-base sm:text-lg lg:text-xl text-content-secondary leading-relaxed mb-6 sm:mb-8 font-medium">
             {articleContent?.articlePreviewText || articlePageData.meta.description}
           </p>
         )}
@@ -210,18 +302,18 @@ function ArticleContent({ articlePageData, articleContent, promoCarouselData, lo
 
       {/* Featured Image - Use heroImage from articleContent if available, otherwise use meta.image */}
       {(articleContent?.heroImage?.src || articlePageData.meta.image) && (
-        <div className="relative w-full aspect-[16/9] mb-10 rounded-xl overflow-hidden">
+        <div className="relative w-full aspect-[16/9] mb-6 sm:mb-10 rounded-lg sm:rounded-xl overflow-hidden">
           <Image
             src={articleContent?.heroImage?.src || articlePageData.meta.image}
-            alt={articleContent?.heroImage?.alt || articlePageData.meta.title}
+            alt={articleContent?.heroImage?.alt || articlePageData.meta.title || "Article featured image"}
             fill
             className="object-cover"
             priority
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1200px"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
             unoptimized
           />
           {articleContent?.heroImage?.caption && (
-            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-sm p-4">
+            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs sm:text-sm p-3 sm:p-4">
               {articleContent.heroImage.caption}
             </div>
           )}
@@ -237,30 +329,31 @@ function ArticleContent({ articlePageData, articleContent, promoCarouselData, lo
 
       {/* Promo Carousel Section */}
       {promoCarouselData && promoCarouselData.items && promoCarouselData.items.length > 0 && (
-        <div className="mt-16 pt-12 border-t border-gray-200">
-          <h2 className="text-2xl lg:text-3xl font-bold text-navy-950 mb-8">
+        <div className="mt-12 sm:mt-16 pt-8 sm:pt-12 border-t border-gray-200">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-navy-950 mb-6 sm:mb-8">
             {promoCarouselData.title || "Related Articles"}
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {promoCarouselData.items.slice(0, 3).map((item: any) => (
-              <div
+              <Link
                 key={item.entryId}
-                className="block"
+                href={item.link || `/${locale}/articles/${item.entryId}`}
+                className="block group"
               >
-                <div className="relative aspect-[4/3] overflow-hidden rounded-lg mb-4">
+                <div className="relative aspect-[4/3] overflow-hidden rounded-lg mb-3 sm:mb-4">
                   <Image
                     src={item.image?.src || "/images/fallback.png"}
-                    alt={item.image?.alt || item.title}
+                    alt={item.image?.alt || item.title || "Related article"}
                     fill
-                    className="object-cover"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     unoptimized
                   />
                 </div>
-                <h3 className="text-base lg:text-lg font-medium text-navy-950 line-clamp-2">
+                <h3 className="text-sm sm:text-base lg:text-lg font-medium text-navy-950 line-clamp-2 group-hover:text-brand-blue transition-colors">
                   {item.title}
                 </h3>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -275,16 +368,10 @@ function ArticleBody({ content }: { content: any }) {
     return <>{parseRichText(content.richtext)}</>;
   }
 
-  // Fallback: render as JSON for debugging (remove in production if not needed)
+  // Fallback: show message if content is not available
   return (
     <div className="text-content-secondary">
       <p className="mb-4">Article content is not available in the expected format.</p>
-      <details className="text-sm">
-        <summary className="cursor-pointer text-brand-blue">Debug: View raw content</summary>
-        <pre className="whitespace-pre-wrap text-xs mt-2 p-4 bg-surface-200 rounded overflow-auto">
-          {JSON.stringify(content, null, 2)}
-        </pre>
-      </details>
     </div>
   );
 }

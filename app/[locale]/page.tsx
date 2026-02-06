@@ -9,10 +9,49 @@ import Footer from "@/components/Footer";
 import { fetchHeroSlides, fetchTopStories, fetchAllRankings, fetchInsideFIFAData, fetchUpcomingTournamentsData } from "@/lib/api";
 import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
+import { Metadata } from "next/types";
 
 type PageProps = {
   params: { locale: string };
 };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const locale: Locale = isValidLocale(params.locale) ? params.locale : "en";
+  const url = `https://example.com/${locale}`;
+
+
+  return {
+    title: "FIFAA | The Home of Football",
+    description: "FIFAA - Your football hub with tournaments, news, rankings, tickets, and featured stories. Stay updated with the latest football news, match scores, and world rankings.",
+    keywords: ["FIFAA", "football", "soccer", "world cup", "tournaments", "rankings", "news", "matches"],
+    openGraph: {
+      title: "FIFAA | The Home of Football",
+      description: "Explore tournaments, highlights, rankings, and stories from the world of football.",
+      url,
+      type: "website",
+      locale: locale,
+      siteName: "FIFAA",
+      images: [{
+        url: "https://example.com/og.jpg",
+        width: 1200,
+        height: 630,
+        alt: "FIFAA - The Home of Football",
+      }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "FIFAA | The Home of Football",
+      description: "Explore tournaments, highlights, rankings, and stories from the world of football.",
+      images: ["https://example.com/og.jpg"],
+    },
+    alternates: {
+      canonical: url,
+      languages: Object.fromEntries(
+        ["en", "es", "fr", "ar"].map((l) => [l, `https://example.com/${l}`])
+      ),
+    },
+  };
+}
 
 export default async function HomePage({ params }: PageProps) {
   const locale: Locale = isValidLocale(params.locale) ? params.locale : "en";
@@ -27,6 +66,24 @@ export default async function HomePage({ params }: PageProps) {
     fetchUpcomingTournamentsData(locale),
   ]);
 
+  const url = `https://example.com/${locale}`;
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "FIFAA | The Home of Football",
+    description: "FIFAA - Your football hub with tournaments, news, rankings, tickets, and featured stories.",
+    url,
+    inLanguage: locale,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${url}/search?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <>
       <Script
@@ -34,15 +91,7 @@ export default async function HomePage({ params }: PageProps) {
         type="application/ld+json"
         strategy="afterInteractive"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebPage",
-            name: "FIFA | The Home of Football",
-            description:
-              "FIFA-inspired football hub with tournaments, news, rankings, tickets, and featured stories.",
-            primaryImageOfPage: "https://example.com/og.jpg",
-            inLanguage: locale,
-          }),
+          __html: JSON.stringify(structuredData),
         }}
       />
       <div className="min-h-screen bg-surface-100">

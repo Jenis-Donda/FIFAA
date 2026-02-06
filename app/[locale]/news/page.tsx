@@ -1,3 +1,4 @@
+import Script from "next/script";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -24,18 +25,40 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!pageData) {
     return {
-      title: "News | FIFA",
-      description: "Discover latest news and exclusive interviews from FIFA, the Home of Football.",
+      title: "News | FIFAA",
+      description: "Discover latest news and exclusive interviews from FIFAA, the Home of Football.",
     };
   }
 
+  const url = `https://example.com/${locale}/news`;
+  const title = pageData.meta?.title || "News | FIFAA";
+  const description = pageData.meta?.description || "Discover latest news and exclusive interviews from FIFAA, the Home of Football.";
+
   return {
-    title: pageData.meta?.title || "News | FIFA",
-    description: pageData.meta?.description || "Discover latest news and exclusive interviews from FIFA, the Home of Football.",
+    title,
+    description,
+    keywords: ["FIFAA news", "football news", "soccer news", "FIFAA updates", "football articles"],
     openGraph: {
-      title: pageData.meta?.title || "News | FIFA",
-      description: pageData.meta?.description || "Discover latest news and exclusive interviews from FIFA, the Home of Football.",
-      images: pageData.meta?.image ? [{ url: pageData.meta.image }] : [],
+      title,
+      description,
+      url,
+      type: "website",
+      locale: locale,
+      images: pageData.meta?.image ? [{ 
+        url: pageData.meta.image,
+        width: 1200,
+        height: 630,
+        alt: title,
+      }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: pageData.meta?.image ? [pageData.meta.image] : [],
+    },
+    alternates: {
+      canonical: url,
     },
   };
 }
@@ -109,10 +132,37 @@ export default async function NewsPage({ params }: PageProps) {
       title: item.title,
     })) || [];
 
+  const url = `https://example.com/${locale}/news`;
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: pageData.meta?.title || "News | FIFAA",
+    description: pageData.meta?.description || "Discover latest news and exclusive interviews from FIFAA, the Home of Football.",
+    url,
+    inLanguage: locale,
+    publisher: {
+      "@type": "Organization",
+      name: "FIFAA",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://example.com/logo.png",
+      },
+    },
+  };
+
   return (
-    <div className="min-h-screen bg-surface-100">
-      <Header locale={locale} dict={dict} />
-      <main>
+    <>
+      <Script
+        id="news-schema"
+        type="application/ld+json"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData),
+        }}
+      />
+      <div className="min-h-screen bg-surface-100">
+        <Header locale={locale} dict={dict} />
+        <main>
         {sectionsData.map(({ section, data, type }, index) => {
           if (!data) return null;
 
@@ -148,8 +198,9 @@ export default async function NewsPage({ params }: PageProps) {
           return null;
         })}
       </main>
-      <Footer dict={dict} />
+      <Footer dict={dict} locale={locale} />
     </div>
+    </>
   );
 }
 

@@ -1,4 +1,5 @@
 import Script from "next/script";
+import type { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RankingTable from "@/components/RankingTable";
@@ -9,6 +10,39 @@ import { getDictionary } from "@/i18n/dictionaries";
 type PageProps = {
     params: { locale: string };
 };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+    const locale: Locale = isValidLocale(params.locale) ? params.locale : "en";
+    const url = `https://example.com/${locale}/world-rankings`;
+
+    return {
+        title: "FIFA World Rankings | FIFAA",
+        description: "Official FIFA World Rankings for men's and women's national football teams. View the latest rankings, points, and position changes.",
+        keywords: ["FIFAA", "FIFA rankings", "world rankings", "football rankings", "men's rankings", "women's rankings", "national teams"],
+        openGraph: {
+            title: "FIFA World Rankings | FIFAA",
+            description: "Official FIFA World Rankings for men's and women's national football teams.",
+            url,
+            type: "website",
+            locale: locale,
+            images: [{
+                url: "https://example.com/rankings-og.jpg",
+                width: 1200,
+                height: 630,
+                alt: "FIFA World Rankings",
+            }],
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: "FIFA World Rankings | FIFAA",
+            description: "Official FIFA World Rankings for men's and women's national football teams.",
+            images: ["https://example.com/rankings-og.jpg"],
+        },
+        alternates: {
+            canonical: url,
+        },
+    };
+}
 
 export default async function WorldRankingsPage({ params }: PageProps) {
     const locale: Locale = isValidLocale(params.locale) ? params.locale : "en";
@@ -40,6 +74,21 @@ export default async function WorldRankingsPage({ params }: PageProps) {
         ? formatRankingsDate(womensData.Results[0].PubDate)
         : "N/A";
 
+    const url = `https://example.com/${locale}/world-rankings`;
+    const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "FIFA World Rankings",
+        description: "Official FIFA World Rankings for men's and women's national football teams.",
+        url,
+        inLanguage: locale,
+        mainEntity: {
+            "@type": "ItemList",
+            name: "FIFA World Rankings",
+            description: "Rankings of national football teams",
+        },
+    };
+
     return (
         <>
             <Script
@@ -47,15 +96,7 @@ export default async function WorldRankingsPage({ params }: PageProps) {
                 type="application/ld+json"
                 strategy="afterInteractive"
                 dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": "WebPage",
-                        name: "FIFA World Rankings",
-                        description:
-                            "Official FIFA World Rankings for men's and women's national football teams.",
-                        primaryImageOfPage: "https://example.com/og.jpg",
-                        inLanguage: locale,
-                    }),
+                    __html: JSON.stringify(structuredData),
                 }}
             />
             <div className="min-h-screen bg-surface-100">

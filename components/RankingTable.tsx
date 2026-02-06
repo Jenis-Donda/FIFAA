@@ -83,9 +83,9 @@ export default function RankingTable({ rows, labels }: RankingTableProps) {
   const l = { ...defaultLabels, ...labels };
 
   return (
-    <div className="overflow-hidden">
-      {/* Header */}
-      <div className="grid grid-cols-[70px_1fr_130px_100px] gap-2 py-3 text-xs font-semibold text-content-muted uppercase tracking-wider">
+    <div className="overflow-x-auto">
+      {/* Header - Hidden on mobile, shown on tablet and up */}
+      <div className="hidden md:grid md:grid-cols-[70px_1fr_130px_100px] gap-2 py-3 text-xs font-semibold text-content-muted uppercase tracking-wider">
         <div>{l.ranking}</div>
         <div>{l.team}</div>
         <div className="text-center">{l.totalPoints}</div>
@@ -96,29 +96,29 @@ export default function RankingTable({ rows, labels }: RankingTableProps) {
       {rows.map((row) => (
         <div
           key={row.code}
-          className="grid grid-cols-[70px_1fr_130px_100px] gap-2 py-4 items-center bg-white rounded-xl mb-2 shadow-sm hover:shadow-md transition-shadow"
+          className="grid grid-cols-[60px_1fr] md:grid-cols-[70px_1fr_130px_100px] gap-2 md:gap-2 py-3 md:py-4 items-center bg-white rounded-xl mb-2 shadow-sm hover:shadow-md transition-shadow"
         >
           {/* Rank & Movement */}
-          <div className="flex items-center pl-4">
-            <span className="font-bold text-navy-950 text-base">{row.rank}</span>
+          <div className="flex items-center pl-2 md:pl-4">
+            <span className="font-bold text-navy-950 text-sm md:text-base">{row.rank}</span>
             {row.movement !== undefined && (
               <MovementIndicator movement={row.movement} />
             )}
           </div>
 
-          {/* Team */}
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">{getCountryFlag(row.code)}</span>
-            <span className="font-semibold text-navy-950">{row.team}</span>
+          {/* Team - Full width on mobile, spans team column on desktop */}
+          <div className="flex items-center gap-2 md:gap-3">
+            <span className="text-xl md:text-2xl">{getCountryFlag(row.code)}</span>
+            <span className="font-semibold text-navy-950 text-sm md:text-base truncate">{row.team}</span>
           </div>
 
-          {/* Points */}
-          <div className="text-center font-semibold text-brand-blue">
+          {/* Points - Hidden on mobile, shown on tablet and up */}
+          <div className="hidden md:block text-center font-semibold text-brand-blue text-sm md:text-base">
             {row.points}
           </div>
 
-          {/* Points Change */}
-          <div className={`text-center font-medium ${
+          {/* Points Change - Hidden on mobile, shown on tablet and up */}
+          <div className={`hidden md:block text-center font-medium text-sm md:text-base ${
             row.pointsChange?.startsWith("+") 
               ? "text-green-600" 
               : row.pointsChange?.startsWith("-") 
@@ -126,6 +126,20 @@ export default function RankingTable({ rows, labels }: RankingTableProps) {
                 : "text-content-muted"
           }`}>
             {row.pointsChange || "-"}
+          </div>
+
+          {/* Mobile: Show points and change below team name */}
+          <div className="md:hidden col-span-2 flex items-center justify-between text-xs mt-1 pt-2 border-t border-surface-200">
+            <span className="font-semibold text-brand-blue">{l.totalPoints}: {row.points}</span>
+            <span className={`font-medium ${
+              row.pointsChange?.startsWith("+") 
+                ? "text-green-600" 
+                : row.pointsChange?.startsWith("-") 
+                  ? "text-red-500" 
+                  : "text-content-muted"
+            }`}>
+              {l.pointsChange}: {row.pointsChange || "-"}
+            </span>
           </div>
         </div>
       ))}
