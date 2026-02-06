@@ -1671,7 +1671,7 @@ export default function MatchDetailsClient({
                       // Handle click to navigate to match details
                       const handleMatchClick = () => {
                         if (historicalMatch.IdCompetition && historicalMatch.IdSeason && historicalMatch.IdStage && historicalMatch.IdMatch) {
-                          router.push(`/${locale}/match-centre/match/${historicalMatch.IdCompetition}/${historicalMatch.IdSeason}/${historicalMatch.IdStage}/${historicalMatch.IdMatch}`);
+                          router.push(`/${locale}/match-score/match/${historicalMatch.IdCompetition}/${historicalMatch.IdSeason}/${historicalMatch.IdStage}/${historicalMatch.IdMatch}`);
                         }
                       };
 
@@ -2073,7 +2073,7 @@ export default function MatchDetailsClient({
                                 className="bg-gray-50 rounded-lg p-3 sm:p-4 hover:bg-gray-100 transition-colors cursor-pointer"
                                 onClick={() => {
                                   router.push(
-                                    `/${locale}/match-centre/${relatedMatch.IdCompetition}/${relatedMatch.IdSeason}/${relatedMatch.IdStage}/${relatedMatch.IdMatch}`
+                                    `/${locale}/match-score/${relatedMatch.IdCompetition}/${relatedMatch.IdSeason}/${relatedMatch.IdStage}/${relatedMatch.IdMatch}`
                                   );
                                 }}
                               >
@@ -2235,7 +2235,7 @@ export default function MatchDetailsClient({
                                 className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors cursor-pointer"
                                 onClick={() => {
                                   router.push(
-                                    `/${locale}/match-centre/${nextMatch.IdCompetition}/${nextMatch.IdSeason}/${nextMatch.IdStage}/${nextMatch.IdMatch}`
+                                    `/${locale}/match-score/${nextMatch.IdCompetition}/${nextMatch.IdSeason}/${nextMatch.IdStage}/${nextMatch.IdMatch}`
                                   );
                                 }}
                               >
@@ -2305,7 +2305,7 @@ export default function MatchDetailsClient({
                                 className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors cursor-pointer"
                                 onClick={() => {
                                   router.push(
-                                    `/${locale}/match-centre/${nextMatch.IdCompetition}/${nextMatch.IdSeason}/${nextMatch.IdStage}/${nextMatch.IdMatch}`
+                                    `/${locale}/match-score/${nextMatch.IdCompetition}/${nextMatch.IdSeason}/${nextMatch.IdStage}/${nextMatch.IdMatch}`
                                   );
                                 }}
                               >

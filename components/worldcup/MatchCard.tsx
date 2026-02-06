@@ -23,7 +23,7 @@ export default function MatchCard({ match }: MatchCardProps) {
 
     return (
         <Link
-            href={`/en/match-centre/match/${match.idCompetition}/${match.idSeason}/${match.idStage}/${match.idMatch}`}
+            href={`/en/match-score/match/${match.idCompetition}/${match.idSeason}/${match.idStage}/${match.idMatch}`}
             className="block hover:bg-gray-50 transition-colors"
         >
             {/* Desktop Layout */}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import MatchCentreClient from "@/components/match-centre/MatchCentreClient";
+import MatchCentreClient from "@/components/match-score/MatchCentreClient";
 import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 

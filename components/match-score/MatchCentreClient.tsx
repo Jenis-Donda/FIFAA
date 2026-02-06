@@ -338,8 +338,18 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
   const [isLoading, setIsLoading] = useState(true);
   const [showLiveOnly, setShowLiveOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarDate, setCalendarDate] = useState<string | null>(null);
+
+  // Debounce search query for better performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   
   // Standings modal state
   const [standingsModal, setStandingsModal] = useState<StandingsModalState>({
@@ -726,21 +736,52 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
     };
   }, [selectedDate, locale]);
 
+  // Optimized search function with character-wise matching
+  const matchesSearchQuery = (match: Match, query: string): boolean => {
+    if (!query.trim()) return true;
+    
+    const normalizedQuery = query.toLowerCase().trim();
+    
+    // Create searchable text from all match fields
+    const searchableFields = [
+      match.homeTeam.toLowerCase(),
+      match.awayTeam.toLowerCase(),
+      match.competition.toLowerCase(),
+      match.seasonName?.toLowerCase() || "",
+      match.homeTeamAbbr?.toLowerCase() || "",
+      match.awayTeamAbbr?.toLowerCase() || "",
+    ];
+    
+    // Check if query matches any field using substring or character-wise matching
+    return searchableFields.some(field => {
+      if (!field) return false;
+      
+      // First try exact substring match (fastest)
+      if (field.includes(normalizedQuery)) {
+        return true;
+      }
+      
+      // If no exact match, try character-wise matching (e.g., "fcb" matches "FC Botosani")
+      // This checks if all characters in query appear in order in the field
+      let queryIndex = 0;
+      for (let i = 0; i < field.length && queryIndex < normalizedQuery.length; i++) {
+        if (field[i] === normalizedQuery[queryIndex]) {
+          queryIndex++;
+        }
+      }
+      
+      // If all characters were found in order, it's a match
+      return queryIndex === normalizedQuery.length;
+    });
+  };
+
   // Filter matches based on live toggle and search
   const filteredMatches = matches
     .map((group) => ({
       ...group,
       matches: group.matches.filter((match) => {
         if (showLiveOnly && match.status !== "live") return false;
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          return (
-            match.homeTeam.toLowerCase().includes(query) ||
-            match.awayTeam.toLowerCase().includes(query) ||
-            match.competition.toLowerCase().includes(query)
-          );
-        }
-        return true;
+        return matchesSearchQuery(match, debouncedSearchQuery);
       }),
     }))
     .filter((group) => group.matches.length > 0);
@@ -758,14 +799,6 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <h1 className="text-2xl lg:text-3xl font-bold italic">Match Score</h1>
-
-
-            {/* Matches Tab */}
-            <div className="sm:ml-8">
-              <span className="text-sm font-medium border-b-2 border-white pb-2">
-                MATCHES
-              </span>
-            </div>
           </div>
         </div>
       </div>
@@ -913,32 +946,69 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
       </div>
 
       {/* Main Content */}
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {isLoading ? (
+      {isLoading ? (
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <MatchList
             matchGroups={[]}
             isLoading={isLoading}
             locale={locale}
           />
-        ) : filteredMatches.length === 0 ? (
+        </div>
+      ) : filteredMatches.length === 0 ? (
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <svg
-              className="w-16 h-16 text-gray-300 mx-auto mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <h3 className="text-lg font-medium text-navy-950 mb-2">No matches scheduled</h3>
-            <p className="text-gray-500">There are no matches scheduled for this date.</p>
+            {debouncedSearchQuery.trim() ? (
+              <>
+                <svg
+                  className="w-16 h-16 text-gray-300 mx-auto mb-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <h3 className="text-lg font-medium text-navy-950 mb-2">No matches found</h3>
+                <p className="text-gray-500 mb-4">
+                  No matches found for &quot;{debouncedSearchQuery}&quot;
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setDebouncedSearchQuery("");
+                  }}
+                  className="text-brand-blue hover:underline text-sm font-medium"
+                >
+                  Clear search
+                </button>
+              </>
+            ) : (
+              <>
+                <svg
+                  className="w-16 h-16 text-gray-300 mx-auto mb-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <h3 className="text-lg font-medium text-navy-950 mb-2">No matches scheduled</h3>
+                <p className="text-gray-500">There are no matches scheduled for this date.</p>
+              </>
+            )}
           </div>
-        ) : (
+        </div>
+      ) : (
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="space-y-6">
             {filteredMatches.map((group) => {
               const metadata = group.competitionId ? competitionMetadata[group.competitionId] : null;
@@ -1032,7 +1102,7 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
                         {group.matches.map((match) => {
                           const isLive = match.status === "live";
                           const isFinished = match.statusCode === 0;
-                          const matchUrl = `/${locale}/match-centre/match/${match.idCompetition}/${match.idSeason}/${match.idStage}/${match.idMatch}`;
+                          const matchUrl = `/${locale}/match-score/match/${match.idCompetition}/${match.idSeason}/${match.idStage}/${match.idMatch}`;
 
                           return (
                             <Link
@@ -1152,8 +1222,8 @@ export default function MatchCentreClient({ locale, dict }: MatchCentreClientPro
               );
             })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Standings Modal */}
       <StandingsModal

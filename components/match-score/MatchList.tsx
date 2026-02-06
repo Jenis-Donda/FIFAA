@@ -13,7 +13,7 @@ type MatchListProps = {
 function MatchRow({ match, locale = "en" }: { match: Match; locale?: string }) {
   const isLive = match.status === "live";
   const isFinished = match.statusCode === 0;
-  const matchUrl = `/${locale}/match-centre/match/${match.idCompetition}/${match.idSeason}/${match.idStage}/${match.idMatch}`;
+  const matchUrl = `/${locale}/match-score/match/${match.idCompetition}/${match.idSeason}/${match.idStage}/${match.idMatch}`;
 
   return (
     <Link

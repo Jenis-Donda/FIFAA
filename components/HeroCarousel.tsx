@@ -226,14 +226,6 @@ export default function HeroCarousel({
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
                     unoptimized
                   />
-                  {/* Hover Arrow Overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[#1a5694] translate-x-0.5">
-                        <path d="M9 6L15 12L9 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

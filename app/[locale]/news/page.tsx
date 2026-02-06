@@ -98,6 +98,17 @@ export default async function NewsPage({ params }: PageProps) {
 
   const sectionsData = await Promise.all(sectionPromises);
 
+  // Fetch news articles to get images for hero banner
+  // Use the "all news" entryId: 2lsGSGYOtykcJRJQu7bdDg
+  const allNewsData = await fetchNewsSectionByEntryId("2lsGSGYOtykcJRJQu7bdDg", locale, 20);
+  const newsImages = allNewsData?.items
+    ?.filter((item) => item.image?.src)
+    .map((item) => ({
+      src: item.image.src,
+      alt: item.image.alt || item.title,
+      title: item.title,
+    })) || [];
+
   return (
     <div className="min-h-screen bg-surface-100">
       <Header locale={locale} dict={dict} />
@@ -128,6 +139,8 @@ export default async function NewsPage({ params }: PageProps) {
                 key={section.entryId}
                 data={data}
                 dict={dict}
+                locale={locale}
+                newsImages={newsImages}
               />
             );
           }

@@ -32,8 +32,8 @@ function ChevronRight() {
 
 function FIFALogo() {
   return (
-    <svg width="80" height="32" viewBox="0 0 80 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <text x="0" y="26" fill="white" fontFamily="Arial Black, sans-serif" fontSize="28" fontWeight="900" letterSpacing="1">FIFA</text>
+    <svg width="100" height="32" viewBox="0 0 100 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <text x="0" y="26" fill="white" fontFamily="Arial Black, sans-serif" fontSize="28" fontWeight="900" letterSpacing="1">FIFAA</text>
     </svg>
   );
 }
@@ -51,17 +51,9 @@ export default function Sidebar({ isOpen, onClose, locale, dict }: SidebarProps)
 
   const mainNavItems = [
     { label: dict.nav.tournaments, href: `/${locale}/tournaments`, hasSubmenu: true, key: "TOURNAMENTS" },
-    { label: dict.nav.matchCentre, href: `/${locale}/match-centre`, hasSubmenu: false },
+    { label: dict.nav.matchCentre, href: `/${locale}/match-score`, hasSubmenu: false },
     { label: dict.nav.news, href: `/${locale}/news`, hasSubmenu: false },
     { label: dict.nav.rankings, href: `/${locale}/world-rankings`, hasSubmenu: false },
-  ];
-
-  const moreItems = [
-    { label: dict.nav.ticketsHospitality, href: `/${locale}/tickets` },
-    { label: dict.nav.fifaPlus, href: "https://www.plus.fifa.com" },
-    { label: dict.nav.fifaStore, href: "https://store.fifa.com" },
-    { label: dict.nav.fifaCollect, href: "https://collect.fifa.com" },
-    { label: "INSIDE FIFA", href: "https://inside.fifa.com" },
   ];
 
   // All submenu data
@@ -70,19 +62,6 @@ export default function Sidebar({ isOpen, onClose, locale, dict }: SidebarProps)
       { label: dict.sidebar.overview, href: `/${locale}/tournaments` },
       { label: dict.sidebar.upcomingTournaments, isHeader: true },
       { label: "FIFA WORLD CUP 2026™", href: `/${locale}/tournaments/mens/worldcup/canadamexicousa2026` },
-      { label: "FIFA WOMEN'S WORLD CUP 2027™", href: `/${locale}/womensworldcup/2027` },
-      { label: "FIFA WOMEN'S CHAMPIONS CUP 2026", href: `/${locale}/wcc/2026` },
-      { label: "FIFA U-20 WOMEN'S WORLD CUP 2026", href: `/${locale}/u20wwc/2026` },
-      { label: dict.sidebar.recentTournaments, isHeader: true },
-      { label: "FIFA INTERCONTINENTAL CUP 2025™", href: `/${locale}/intercontinentalcup/2025` },
-      { label: "FIFA ARAB CUP 2025™", href: `/${locale}/arabcup/2025` },
-      { label: "THE BEST FIFA FOOTBALL AWARDS™", href: `/${locale}/the-best` },
-      { label: "FIFA FUTSAL WOMEN'S WORLD CUP", href: `/${locale}/futsalwwc` },
-      { label: "FIFA U-17 WORLD CUP 2025", href: `/${locale}/u17wc/2025` },
-      { label: "FIFA U-17 WOMEN'S WORLD CUP 2025", href: `/${locale}/u17wwc/2025` },
-      { label: "FIFA U-20 WORLD CUP 2025", href: `/${locale}/u20wc/2025` },
-      { label: "FIFA CLUB WORLD CUP 2025™", href: `/${locale}/clubworldcup/2025` },
-      { label: "FIFA BEACH SOCCER WORLD CUP", href: `/${locale}/beachwc` },
     ],
     WATCH: [
       { label: "OVERVIEW", href: "https://www.plus.fifa.com" },
@@ -232,27 +211,6 @@ export default function Sidebar({ isOpen, onClose, locale, dict }: SidebarProps)
                 )}
               </div>
             ))}
-
-            {/* More FIFA Section */}
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <div className="px-6 py-2 text-xs font-semibold uppercase tracking-wider text-white/50">
-                {dict.sidebar.moreFifa}
-              </div>
-              {moreItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  onClick={onClose}
-                  onMouseEnter={() => {
-                    setActiveSubmenu(null);
-                    setShowLanguages(false);
-                  }}
-                  className="flex items-center px-6 py-2.5 text-sm font-medium uppercase tracking-wide text-white/90 hover:bg-white/5 hover:text-white transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
 
             {/* Preferences Section */}
             <div className="mt-4 pt-4 border-t border-white/10">

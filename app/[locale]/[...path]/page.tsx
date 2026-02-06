@@ -25,7 +25,7 @@ export default async function ArticlePage({ params }: PageProps) {
   const isArticlePath = pathString.includes('/articles/');
   
   // Skip if it's a known non-article route (these should be handled by specific routes)
-  const nonArticleRoutes = ['news', 'match-centre', 'world-rankings', 'cat'];
+  const nonArticleRoutes = ['news', 'match-score', 'world-rankings', 'cat'];
   const isNonArticleRoute = nonArticleRoutes.some(route => pathString === route || pathString.startsWith(`${route}/`));
   
   // Also check for specific tournament routes that aren't articles
@@ -125,9 +125,22 @@ function ArticleContent({ articlePageData, articleContent, promoCarouselData, lo
   });
 
   // Extract tags for display
-  const displayTags = articlePageData.tags
-    ?.filter(tag => tag.sourceCategory !== "Competition" && tag.sourceCategory !== "Season" && tag.sourceCategory !== "Association" && tag.sourceCategory !== "Confederation" && tag.sourceCategory !== "Team" && tag.sourceCategory !== "Player")
-    .map(tag => tag.title) || [];
+  type Tag = {
+    sourceCategory?: string;
+    title: string;
+  };
+  
+  const tags = (articlePageData as any).tags as Tag[] | undefined;
+  const displayTags = tags
+    ?.filter((tag: Tag) => 
+      tag.sourceCategory !== "Competition" && 
+      tag.sourceCategory !== "Season" && 
+      tag.sourceCategory !== "Association" && 
+      tag.sourceCategory !== "Confederation" && 
+      tag.sourceCategory !== "Team" && 
+      tag.sourceCategory !== "Player"
+    )
+    .map((tag: Tag) => tag.title) || [];
 
   return (
     <article className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
@@ -175,7 +188,7 @@ function ArticleContent({ articlePageData, articleContent, promoCarouselData, lo
           </time>
           {displayTags.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {displayTags.map((tag, index) => (
+              {displayTags.map((tag: string, index: number) => (
                 <span
                   key={index}
                   className="px-3 py-1 bg-surface-200 rounded-full text-xs font-medium"

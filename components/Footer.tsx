@@ -11,7 +11,7 @@ export default function Footer({ dict, locale }: FooterProps) {
   // First section: FIFA - Links from home page header
   const fifaLinks = [
     { label: dict.nav.tournaments, href: `/${locale}/tournaments` },
-    { label: dict.nav.matchCentre, href: `/${locale}/match-centre` },
+    { label: dict.nav.matchCentre, href: `/${locale}/match-score` },
     { label: dict.nav.news, href: `/${locale}/news` },
     { label: dict.nav.rankings, href: `/${locale}/world-rankings` },
   ];
@@ -54,7 +54,7 @@ export default function Footer({ dict, locale }: FooterProps) {
             {/* Second Section: FIFA World Cup */}
             <div>
               <h4 className="font-display font-semibold mb-6 tracking-[0.08em] uppercase text-base text-white">
-                FIFA World Cup
+                FIFA WORLD CUP 2026
               </h4>
               <ul className="list-none p-0 m-0 flex flex-col gap-3.5">
                 {worldCupLinks.map((link) => (
