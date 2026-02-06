@@ -56,7 +56,7 @@ export default async function NewsPage({ params }: PageProps) {
             <p className="text-center text-content-secondary">Failed to load news page.</p>
           </div>
         </main>
-        <Footer dict={dict} />
+        <Footer dict={dict} locale={locale} />
       </div>
     );
   }

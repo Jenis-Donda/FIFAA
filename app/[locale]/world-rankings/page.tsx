@@ -126,7 +126,7 @@ export default async function WorldRankingsPage({ params }: PageProps) {
                         </div>
                     </section>
                 </main>
-                <Footer dict={dict} />
+                <Footer dict={dict} locale={locale} />
             </div>
         </>
     );

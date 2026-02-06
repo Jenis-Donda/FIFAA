@@ -24,7 +24,7 @@ export default function MatchCentrePage({ params }: PageProps) {
       <main>
         <MatchCentreClient locale={locale} dict={dict} />
       </main>
-      <Footer dict={dict} />
+      <Footer dict={dict} locale={locale} />
     </div>
   );
 }

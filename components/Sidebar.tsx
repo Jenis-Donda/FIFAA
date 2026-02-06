@@ -54,10 +54,6 @@ export default function Sidebar({ isOpen, onClose, locale, dict }: SidebarProps)
     { label: dict.nav.matchCentre, href: `/${locale}/match-centre`, hasSubmenu: false },
     { label: dict.nav.news, href: `/${locale}/news`, hasSubmenu: false },
     { label: dict.nav.rankings, href: `/${locale}/world-rankings`, hasSubmenu: false },
-    { label: dict.nav.watchOnFifa, href: "#", hasSubmenu: true, key: "WATCH" },
-    { label: dict.nav.play, href: "#", hasSubmenu: true, key: "PLAY" },
-    { label: dict.nav.shop, href: "#", hasSubmenu: true, key: "SHOP" },
-    { label: dict.nav.insideFifa, href: "#", hasSubmenu: true, key: "INSIDE" },
   ];
 
   const moreItems = [

@@ -7,6 +7,7 @@ import InsideFIFA from "@/components/InsideFIFA";
 import UpcomingTournaments from "@/components/UpcomingTournaments";
 import type { InsideFIFAData, RankingsData, Match } from "@/lib/types";
 import type { Dictionary } from "@/i18n/dictionaries";
+import type { Locale } from "@/i18n/config";
 import HostCountriesCarousel from "./HostCountriesCarousel";
 import WorldCupStandings from "./WorldCupStandings";
 
@@ -20,9 +21,10 @@ type Props = {
     dict: Dictionary;
     hostCountries: any[];
     standings: any[];
+    locale: Locale;
 };
 
-export default function WorldCupHome({ slides, stories, rankings, insideFIFA, upcomingTournaments, matches, dict, hostCountries, standings }: Props) {
+export default function WorldCupHome({ slides, stories, rankings, insideFIFA, upcomingTournaments, matches, dict, hostCountries, standings, locale }: Props) {
     const worldCupStartDate = new Date("2026-06-11T20:00:00Z");
 
     return (
@@ -46,6 +48,7 @@ export default function WorldCupHome({ slides, stories, rankings, insideFIFA, up
                 mensLastUpdate={rankings.mensLastUpdate}
                 womensLastUpdate={rankings.womensLastUpdate}
                 dict={dict}
+                locale={locale}
             />
             <InsideFIFA data={insideFIFA} />
             <UpcomingTournaments data={upcomingTournaments} />

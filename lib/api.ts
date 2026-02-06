@@ -98,17 +98,26 @@ export async function fetchNewsSection(locale: string, limit: number = 20): Prom
 /**
  * Extract and transform stories from news response
  */
-export function extractStories(data: NewsResponse | null): Story[] {
+export function extractStories(data: NewsResponse | null, locale: string = "en"): Story[] {
   if (!data?.items) return [];
 
-  return data.items.map((item) => ({
-    id: item.entryId,
-    eyebrow: item.roofline,
-    title: item.title,
-    summary: item.previewText || "",
-    image: item.image?.src || "",
-    link: item.articlePageUrl || "#",
-  }));
+  return data.items.map((item) => {
+    // Use the full articlePageUrl path as the link
+    // articlePageUrl format: /en/tournaments/mens/worldcup/canadamexicousa2026/articles/casemiro-brazil-manchester-united-analysis
+    // This preserves the full path structure like FIFA.com
+    const articlePath = item.articlePageUrl || `/${locale}/articles/${item.slug || item.entryId}`;
+    
+    return {
+      id: item.entryId,
+      entryId: item.entryId,
+      eyebrow: item.roofline,
+      title: item.title,
+      summary: item.previewText || "",
+      image: item.image?.src || "",
+      link: articlePath,
+      slug: item.slug || item.articlePageUrl.split('/').pop() || item.entryId,
+    };
+  });
 }
 
 /**
@@ -116,7 +125,7 @@ export function extractStories(data: NewsResponse | null): Story[] {
  */
 export async function fetchTopStories(locale: string, limit: number = 20): Promise<Story[]> {
   const newsData = await fetchNewsSection(locale, limit);
-  return extractStories(newsData);
+  return extractStories(newsData, locale);
 }
 
 const FIFA_RANKINGS_API = "https://api.fifa.com/api/v3/rankings";
@@ -1135,6 +1144,60 @@ export async function fetchPromoCarousel(locale: string = "en"): Promise<any> {
     return response.json();
   } catch (error) {
     console.error("Error fetching promo carousel:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetch article page by full path
+ * Uses the pages API with the full article path
+ * Example: /en/tournaments/mens/worldcup/canadamexicousa2026/articles/casemiro-brazil-manchester-united-analysis
+ */
+export async function fetchArticlePage(articlePath: string): Promise<FIFAPageResponse | null> {
+  try {
+    // Remove leading slash if present and ensure it starts correctly
+    const cleanPath = articlePath.startsWith('/') ? articlePath.slice(1) : articlePath;
+    const response = await fetch(
+      `${FIFA_API_BASE}/${cleanPath}`,
+      {
+        next: { revalidate: 300 }, // Cache for 5 minutes
+        headers: FIFA_API_HEADERS,
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to fetch article page: ${response.status}`);
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching article page:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetch article section content by entryId
+ */
+export async function fetchArticleSection(entryId: string, locale: string): Promise<any | null> {
+  try {
+    const response = await fetch(
+      `${FIFA_SECTIONS_API}/article/${entryId}?locale=${locale}`,
+      {
+        next: { revalidate: 300 },
+        headers: FIFA_API_HEADERS,
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to fetch article section: ${response.status}`);
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching article section:", error);
     return null;
   }
 }

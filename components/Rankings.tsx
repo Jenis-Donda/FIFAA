@@ -2,6 +2,7 @@ import Link from "next/link";
 import RankingTable from "./RankingTable";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { RankingRow } from "@/lib/types";
+import type { Locale } from "@/i18n/config";
 
 type RankingsProps = {
   men: RankingRow[];
@@ -9,6 +10,7 @@ type RankingsProps = {
   mensLastUpdate: string;
   womensLastUpdate: string;
   dict: Dictionary;
+  locale: Locale;
 };
 
 export default function Rankings({ 
@@ -16,7 +18,8 @@ export default function Rankings({
   women, 
   mensLastUpdate, 
   womensLastUpdate, 
-  dict 
+  dict,
+  locale
 }: RankingsProps) {
   return (
     <section className="py-14 bg-surface-100">
@@ -48,7 +51,7 @@ export default function Rankings({
             />
 
             <Link
-              href="/en/world-rankings/men"
+              href={`/${locale}/world-rankings`}
               className="mt-6 inline-flex items-center gap-2 px-6 py-3 border-2 border-brand-blue text-brand-blue font-semibold text-sm uppercase tracking-wide rounded-full hover:bg-brand-blue hover:text-white transition-all duration-200"
             >
               {dict.sections.exploreFullRanking.replace("ranking", "Men's Ranking")}
@@ -84,7 +87,7 @@ export default function Rankings({
             />
 
             <Link
-              href="/en/world-rankings/women"
+              href={`/${locale}/world-rankings`}
               className="mt-6 inline-flex items-center gap-2 px-6 py-3 border-2 border-brand-blue text-brand-blue font-semibold text-sm uppercase tracking-wide rounded-full hover:bg-brand-blue hover:text-white transition-all duration-200"
             >
               {dict.sections.exploreFullRanking.replace("ranking", "Women's Ranking")}
