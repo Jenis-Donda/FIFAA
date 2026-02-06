@@ -56,11 +56,12 @@ export default async function HomePage({ params }: PageProps) {
             mensLastUpdate={rankings.mensLastUpdate}
             womensLastUpdate={rankings.womensLastUpdate}
             dict={dict}
+            locale={locale}
           />
           <InsideFIFA data={insideFIFA} />
           <UpcomingTournaments data={upcomingTournaments} />
         </main>
-        <Footer dict={dict} />
+        <Footer dict={dict} locale={locale} />
       </div>
     </>
   );

@@ -37,7 +37,7 @@ export default function MatchDetailsPage({ params }: PageProps) {
           idMatch={params.idMatch}
         />
       </main>
-      <Footer dict={dict} />
+      <Footer dict={dict} locale={locale} />
     </div>
   );
 }

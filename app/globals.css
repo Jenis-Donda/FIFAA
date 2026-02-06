@@ -47,3 +47,45 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+/* Article content styling */
+.article-content {
+  @apply text-content-secondary leading-relaxed;
+}
+
+.article-content p {
+  @apply mb-4;
+}
+
+.article-content h2 {
+  @apply text-2xl font-bold text-navy-950 mt-8 mb-4;
+}
+
+.article-content h3 {
+  @apply text-xl font-bold text-navy-950 mt-6 mb-3;
+}
+
+.article-content ul,
+.article-content ol {
+  @apply mb-4 pl-6;
+}
+
+.article-content li {
+  @apply mb-2;
+}
+
+.article-content a {
+  @apply text-brand-blue hover:underline;
+}
+
+.article-content img {
+  @apply rounded-lg my-6;
+}
+
+.article-content blockquote {
+  @apply border-l-4 border-brand-blue pl-4 italic my-6 text-content-secondary;
+}
+
+.article-content strong {
+  @apply font-semibold text-navy-950;
+}

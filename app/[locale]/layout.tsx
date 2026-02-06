@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Oswald } from "next/font/google";
 import { locales, isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
+import NavigationLoader from "@/components/NavigationLoader";
 import "../globals.css";
 
 const inter = Inter({
@@ -70,7 +71,10 @@ export default function LocaleLayout({
 
   return (
     <html lang={locale} dir={dir} className={`${inter.variable} ${oswald.variable}`}>
-      <body>{children}</body>
+      <body>
+        <NavigationLoader />
+        {children}
+      </body>
     </html>
   );
 }

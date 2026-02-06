@@ -188,6 +188,7 @@ export default async function WorldCupHostPage({ params }: PageProps) {
             hostCountries={hostCountries}
             standings={standings}
             dict={dict}
+            locale={locale}
           />
         </>
     );

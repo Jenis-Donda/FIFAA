@@ -44,7 +44,7 @@ export default async function NewsListingPage({ params }: PageProps) {
             <p className="text-center text-content-secondary">No news articles found.</p>
           </div>
         </main>
-        <Footer dict={dict} />
+        <Footer dict={dict} locale={locale} />
       </div>
     );
   }
@@ -55,7 +55,7 @@ export default async function NewsListingPage({ params }: PageProps) {
       <main className="py-10 lg:py-14">
         <NewsListingClient newsData={newsData} locale={locale} />
       </main>
-      <Footer dict={dict} />
+      <Footer dict={dict} locale={locale} />
     </div>
   );
 }

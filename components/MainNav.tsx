@@ -22,15 +22,6 @@ function HamburgerIcon() {
   );
 }
 
-function UserIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M4 20C4 16.6863 7.58172 14 12 14C16.4183 14 20 16.6863 20 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function FIFALogo() {
   return (
     <svg width="150" height="36" viewBox="0 0 90 36" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -63,10 +54,6 @@ export default function MainNav({ locale, dict }: MainNavProps) {
     { label: dict.nav.matchCentre, href: `/${locale}/match-centre`, hasDropdown: false },
     { label: dict.nav.news, href: `/${locale}/news`, hasDropdown: false },
     { label: dict.nav.rankings, href: `/${locale}/world-rankings`, hasDropdown: false },
-    { label: dict.nav.watchOnFifa, href: "#", hasDropdown: true },
-    { label: dict.nav.play, href: "#", hasDropdown: true },
-    { label: dict.nav.shop, href: "#", hasDropdown: true },
-    { label: dict.nav.insideFifa, href: "#", hasDropdown: true },
   ];
 
   return (
@@ -137,15 +124,9 @@ export default function MainNav({ locale, dict }: MainNavProps) {
             })}
           </nav>
 
-          {/* Right section: Language & Account */}
+          {/* Right section: Language */}
           <div className="flex items-center gap-2 shrink-0">
             <LanguageDropdown currentLocale={locale} />
-            <button
-              className="flex items-center justify-center w-11 h-11 text-white cursor-pointer rounded-md transition-all duration-200 hover:bg-white/15 hover:scale-105 active:scale-95"
-              aria-label={dict.nav.myAccount}
-            >
-              <UserIcon />
-            </button>
           </div>
         </div>
       </div>

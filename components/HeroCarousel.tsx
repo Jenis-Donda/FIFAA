@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import type { CarouselSlide } from "@/lib/types";
 
 type HeroCarouselProps = {
@@ -172,18 +171,10 @@ export default function HeroCarousel({
 
                 {/* Subtitle */}
                 {currentSlide.subtitle && currentSlide.subtitle.trim() !== "" && (
-                  <p className="text-white/80 text-sm sm:text-base lg:text-lg leading-relaxed mb-8 lg:mb-10 max-w-lg">
+                  <p className="text-white/80 text-sm sm:text-base lg:text-lg leading-relaxed max-w-lg">
                     {currentSlide.subtitle}
                   </p>
                 )}
-
-                {/* CTA Button */}
-                <Link
-                  href={currentSlide.link}
-                  className="inline-flex items-center px-7 sm:px-8 py-3 bg-white text-[#1a5694] text-sm font-semibold rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:bg-gray-50"
-                >
-                  {currentSlide.cta}
-                </Link>
               </div>
             </div>
 

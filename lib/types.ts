@@ -121,11 +121,13 @@ export interface CarouselSlide {
 
 export interface Story {
   id: string;
+  entryId: string;
   eyebrow: string;
   title: string;
   summary: string;
   image: string;
   link: string;
+  slug?: string;
 }
 
 // Rankings API Types
