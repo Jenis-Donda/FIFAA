@@ -3,6 +3,21 @@ import type { FIFAPageResponse, CarouselSlide, NewsResponse, Story, RankingsResp
 const FIFA_API_BASE = "https://cxm-api.fifa.com/fifaplusweb/api/pages";
 const FIFA_SECTIONS_API = "https://cxm-api.fifa.com/fifaplusweb/api/sections";
 
+/**
+ * Safely parse JSON from a response, handling empty or invalid responses
+ */
+async function safeJsonParse<T>(response: Response): Promise<T | null> {
+  try {
+    const text = await response.text();
+    if (!text || text.trim().length === 0) {
+      return null;
+    }
+    return JSON.parse(text) as T;
+  } catch (error) {
+    return null;
+  }
+}
+
 // Common headers for FIFA API requests
 const FIFA_API_HEADERS = {
   "Accept": "application/json, text/plain, */*",
@@ -432,7 +447,7 @@ export async function fetchMatches(
     const response = await fetch(
       `${FIFA_CALENDAR_API}/matches?from=${from}&to=${to}&language=${language}&count=${count}`,
       {
-        cache: 'no-store', // Disable caching to always get fresh data
+        next: { revalidate: 60 }, // Cache for 1 minute
         headers: FIFA_API_HEADERS,
       }
     );
@@ -837,7 +852,7 @@ export async function fetchMatchDetails(
     const liveUrl = `${FIFA_LIVE_API}/${idCompetition}/${idSeason}/${idStage}/${idMatch}?language=${language}`;
     
     let response = await fetch(liveUrl, {
-      cache: 'no-store',
+      next: { revalidate: 30 }, // Cache for 30 seconds
       headers: {
         ...FIFA_API_HEADERS,
         "Sec-Fetch-Dest": "empty",
@@ -850,22 +865,29 @@ export async function fetchMatchDetails(
     if (!response.ok) {
       const calendarUrl = `${FIFA_CALENDAR_API}/${idCompetition}/${idSeason}/${idMatch}?language=${language}`;
       response = await fetch(calendarUrl, {
-        cache: 'no-store',
+        next: { revalidate: 30 }, // Cache for 30 seconds
         headers: FIFA_API_HEADERS,
       });
     }
 
     if (!response.ok) {
-      console.error(`Failed to fetch match details: ${response.status}`);
       return null;
     }
 
-    const data = await response.json();
-    
-    // The API might return the match directly or wrapped in Results array
-    return data.Results?.[0] || data || null;
+    // Check if response has content before parsing
+    const text = await response.text();
+    if (!text || text.trim().length === 0) {
+      return null;
+    }
+
+    try {
+      const data = JSON.parse(text);
+      // The API might return the match directly or wrapped in Results array
+      return data.Results?.[0] || data || null;
+    } catch (parseError) {
+      return null;
+    }
   } catch (error) {
-    console.error("Error fetching match details:", error);
     return null;
   }
 }
@@ -890,7 +912,7 @@ export async function fetchHeadToHead(
     }
 
     const response = await fetch(url, {
-      cache: 'no-store',
+      next: { revalidate: 60 }, // Cache for 1 minute
       headers: FIFA_API_HEADERS,
     });
 
@@ -939,18 +961,19 @@ export async function fetchWorldCupHostCountries(
 ): Promise<any> {
   try {
     const response = await fetch(
-      `https://cxm-api.fifa.com/fifaplusweb/api/sections/teamsModule/5XwqLVjelDeqteyJh06Hrm?locale=en&limit=200`
+      `https://cxm-api.fifa.com/fifaplusweb/api/sections/teamsModule/5XwqLVjelDeqteyJh06Hrm?locale=en&limit=200`,
+      {
+        next: { revalidate: 300 }, // Cache for 5 minutes
+        headers: FIFA_API_HEADERS,
+      }
     );
     
     if (!response.ok) {
-      console.error(`Failed to fetch host countries: ${response.status}`);
       return null;
     }
     
-    const data = await response.json();
-    return data;
+    return safeJsonParse<any>(response);
   } catch (error) {
-    console.error("Error fetching host countries:", error);
     return null;
   }
 }
@@ -960,7 +983,7 @@ export async function fetchWorldCupStandings(locale: string = "en") {
   
   try {
     const response = await fetch(url, { 
-      cache: 'no-store',
+      next: { revalidate: 300 }, // Cache for 5 minutes
       headers: {
         'Accept': 'application/json',
       }
@@ -1127,13 +1150,21 @@ export async function fetchPromoCarousel(locale: string = "en"): Promise<any> {
     );
 
     if (!response.ok) {
-      console.error(`Failed to fetch promo carousel: ${response.status}`);
       return null;
     }
 
-    return response.json();
+    // Check if response has content before parsing
+    const text = await response.text();
+    if (!text || text.trim().length === 0) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (parseError) {
+      return null;
+    }
   } catch (error) {
-    console.error("Error fetching promo carousel:", error);
     return null;
   }
 }

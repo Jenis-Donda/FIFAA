@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Oswald } from "next/font/google";
 import { locales, isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import NavigationLoader from "@/components/NavigationLoader";
+import { Suspense } from "react";
 import "../globals.css";
 
 const inter = Inter({
@@ -20,6 +21,12 @@ const oswald = Oswald({
 export async function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export async function generateMetadata({
   params,
@@ -47,11 +54,6 @@ export async function generateMetadata({
       icon: "/images/loader.jpg",
       shortcut: "/images/loader.jpg",
       apple: "/images/loader.jpg",
-    },
-    viewport: {
-      width: "device-width",
-      initialScale: 1,
-      maximumScale: 5,
     },
     openGraph: {
       title: "FIFAA | The Home of Football",
@@ -112,7 +114,9 @@ export default function LocaleLayout({
   return (
     <html lang={locale} dir={dir} className={`${inter.variable} ${oswald.variable}`}>
       <body>
-        <NavigationLoader />
+        <Suspense fallback={null}>
+          <NavigationLoader />
+        </Suspense>
         {children}
       </body>
     </html>

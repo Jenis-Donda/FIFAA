@@ -24,7 +24,6 @@ export async function GET(request: NextRequest) {
     );
     return NextResponse.json({ standings });
   } catch (error) {
-    console.error("Error fetching standings:", error);
     return NextResponse.json(
       { error: "Failed to fetch standings" },
       { status: 500 }
