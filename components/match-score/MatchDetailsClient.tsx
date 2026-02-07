@@ -2072,7 +2072,7 @@ export default function MatchDetailsClient({
                                 className="bg-gray-50 rounded-lg p-3 sm:p-4 hover:bg-gray-100 transition-colors cursor-pointer"
                                 onClick={() => {
                                   router.push(
-                                    `/${locale}/match-score/${relatedMatch.IdCompetition}/${relatedMatch.IdSeason}/${relatedMatch.IdStage}/${relatedMatch.IdMatch}`
+                                    `/${locale}/match-score/match/${relatedMatch.IdCompetition}/${relatedMatch.IdSeason}/${relatedMatch.IdStage}/${relatedMatch.IdMatch}`
                                   );
                                 }}
                               >
